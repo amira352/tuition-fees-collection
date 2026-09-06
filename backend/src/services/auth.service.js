@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-import { findBankEmployeeByEmail } from "../repositories/bankEmployee.repository.js";
+import { findBankEmployeeByemail } from "../repositories/bankEmployee.repository.js";
 import { findInstitutionByEmail } from "../repositories/institution.repository.js";
 
 export const login = async (email, password) => {
@@ -13,7 +13,7 @@ export const login = async (email, password) => {
     // 1. Search bank employees
     // -----------------------------------
   const bankEmployee =
-    await findBankEmployeeByEmail(normalizedEmail);
+    await findBankEmployeeByemail(normalizedEmail);
 
   if (bankEmployee) {
     const passwordMatches = await bcrypt.compare(
