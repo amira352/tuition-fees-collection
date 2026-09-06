@@ -1,14 +1,12 @@
 export const errorHandler = (err, req, res, next) => {
-
   console.error(err);
 
-  if (err.message === "Invalid credentials") {
-    return res.status(401).json({
-      message: "Invalid credentials"
-    });
-  }
+  const statusCode = err.statusCode || 500;
 
-  return res.status(500).json({
-    message: "Internal server error"
+  return res.status(statusCode).json({
+    message:
+      statusCode === 500
+        ? "Internal server error"
+        : err.message
   });
 };
