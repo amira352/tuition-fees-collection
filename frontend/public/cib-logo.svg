@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 108" fill="none">
+  <!-- blue C bracket with white interior -->
+  <path d="M14 0H104V22H36A14 14 0 0 0 22 36V72A14 14 0 0 0 36 86H104V108H14A14 14 0 0 1 0 94V14A14 14 0 0 1 14 0Z" fill="#235FA9"/>
+  <!-- orange wire globe -->
+  <g transform="translate(55 54)">
+    <defs>
+      <clipPath id="cibGlobeClip"><circle r="24"/></clipPath>
+    </defs>
+    <g clip-path="url(#cibGlobeClip)" stroke="#EE7F2E" stroke-width="3" fill="none">
+      <path d="M-26 -14H26M-26 -5H26M-26 5H26M-26 14H26"/>
+      <path d="M0 -26V26"/>
+      <ellipse rx="9.5" ry="25"/>
+      <ellipse rx="17.5" ry="25"/>
+    </g>
+    <circle r="24" stroke="#EE7F2E" stroke-width="3.8" fill="none"/>
+    <g stroke="#EE7F2E" stroke-width="3.2" stroke-linecap="round">
+      <path d="M0 -11V11M-11 0H11M-7.8 -7.8 7.8 7.8M-7.8 7.8 7.8 -7.8"/>
+    </g>
+  </g>
+  <!-- IB -->
+  <text x="118" y="86" font-family="Arial, Helvetica, sans-serif" font-size="112" font-weight="bold" letter-spacing="-8" fill="#235FA9" stroke="#235FA9" stroke-width="4">IB</text>
+</svg>
