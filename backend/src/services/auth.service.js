@@ -1,49 +1,102 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-import { findBankEmployeeByemail } from "../repositories/bankEmployee.repository.js";
+import { findBankEmployeeByEmail } from "../repositories/bankEmployee.repository.js";
+import { findInstitutionByEmail } from "../repositories/institution.repository.js";
+
+export const login = async (email, password) => {
+  // Normalize email
+  const normalizedEmail = email.trim().toLowerCase();
 
 
-export const loginBankEmployee = async (email, password) => {
+    // -----------------------------------
+    // 1. Search bank employees
+    // -----------------------------------
+  const bankEmployee =
+    await findBankEmployeeByEmail(normalizedEmail);
 
-  // Find employee
-  const employee = await findBankEmployeeByemail(email);
+  if (bankEmployee) {
+    const passwordMatches = await bcrypt.compare(
+      password,
+      bankEmployee.password_hash
+    );
 
-  if (!employee) {
-    throw new Error("Invalid credentials");
+    if (!passwordMatches) {
+      const error = new Error("Invalid email or password");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const role = "bank_employee";
+
+    const token = jwt.sign(
+      {
+        userId: bankEmployee.id,
+        role
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "1d"
+      }
+    );
+
+    return {
+      token,
+      role,
+      user: {
+        id: bankEmployee.id,
+        email: bankEmployee.email,
+        branch: bankEmployee.branch
+      }
+    };
   }
 
-  // Compare entered password with hashed password
-  const passwordMatches = await bcrypt.compare(
-    password,
-    employee.password_hash
-  );
+  // -----------------------------------
+  // 2. Search institutions
+  // -----------------------------------
 
-  if (!passwordMatches) {
-    throw new Error("Invalid credentials");
+  const institution =
+    await findInstitutionByEmail(normalizedEmail);
+
+  if (institution) {
+    const passwordMatches = await bcrypt.compare(
+      password,
+      institution.password_hash
+    );
+
+    if (!passwordMatches) {
+      const error = new Error("Invalid email or password");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const role = "institution";
+
+    const token = jwt.sign(
+      {
+        userId: institution.id,
+        role
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "1d"
+      }
+    );
+
+    return {
+      token,
+      role,
+      user: {
+        id: institution.id,
+        name: institution.name,
+        type: institution.type,
+        email: institution.email
+      }
+    };
   }
 
-  // Create JWT token
-  const token = jwt.sign(
-    {
-      id: employee.id,
-      branch: employee.branch,
-      role: "bank_employee"
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_EXPIRES_IN || "1d"
-    }
-  );
-
-  // Return employee data without password
-  return {
-    token,
-
-    employee: {
-      id: employee.id,
-      email: employee.email,
-      branch: employee.branch
-    }
-  };
+  // Neither table contained this email
+  const error = new Error("Invalid email or password");
+  error.statusCode = 401;
+  throw error;
 };
