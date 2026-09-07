@@ -49,6 +49,10 @@ const assertEmailIsFree = async (email) => {
   }
 };
 
+// The database only accepts these two values for institutions.type.
+// Checking here turns a database constraint error into a clear 400.
+const INSTITUTION_TYPES = ["school", "university"];
+
 const normalizeEmail = (email) => {
   if (!email || typeof email !== "string") {
     throw badRequest("Email is required");
@@ -131,6 +135,14 @@ export const createInstitutionUser = async (
     throw badRequest("Institution type is required");
   }
 
+  const normalizedType = type.trim().toLowerCase();
+
+  if (!INSTITUTION_TYPES.includes(normalizedType)) {
+    throw badRequest(
+      `Institution type must be one of: ${INSTITUTION_TYPES.join(", ")}`
+    );
+  }
+
   await assertEmailIsFree(normalizedEmail);
 
   let temporaryPassword = password;
@@ -145,7 +157,7 @@ export const createInstitutionUser = async (
 
   const created = await createInstitution({
     name: name.trim(),
-    type: type.trim(),
+    type: normalizedType,
     email: normalizedEmail,
     passwordHash,
     createdBy: adminId
