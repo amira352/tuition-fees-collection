@@ -25,15 +25,28 @@ src/
     api.js              fetch wrapper (base URL, auth header, error handling)
     auth.js             login / logout / getUser / isAuthenticated  (localStorage)
   components/
-    ProtectedRoute.jsx  redirects to /login when not signed in
+    ProtectedRoute.jsx  gate for signed-in routes (also forces /set-password)
     AuthShell.jsx       centered-card layout for public pages (login, etc.)
     AppShell.jsx        top-bar layout for signed-in pages (<Outlet/> inside)
     Icons.jsx           shared inline SVG icons
   pages/
     Login.jsx           POST /api/auth/loginUser, stores JWT, redirects
+    SetPassword.jsx     forced first-login password reset
     Dashboard.jsx       placeholder landing page after login
     NotFound.jsx        404
 ```
+
+### First-login password reset — needs backend support
+
+`SetPassword.jsx` + the `ProtectedRoute` guard are ready, but stay dormant until
+the backend provides (see the contract comment in `src/lib/auth.js`):
+
+1. `POST /auth/loginUser` returns `mustChangePassword: true` for accounts that
+   still have their CIB-issued temporary password.
+2. `POST /auth/changePassword` (Bearer token) with `{ currentPassword, newPassword }`
+   — verifies, updates the hash, clears the flag.
+
+Until then login behaves exactly as before (no reset is forced).
 
 ## Adding a page (one branch + one PR per page)
 
