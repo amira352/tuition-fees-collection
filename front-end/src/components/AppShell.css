@@ -5,70 +5,20 @@
   background: var(--page-bg);
 }
 
-.shell-bar {
+.shell-body {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  background: #fff;
-  border-bottom: 1px solid var(--line);
-}
-
-.shell-brand {
-  display: inline-flex;
-  align-items: center;
-}
-
-.shell-brand img {
-  height: 32px;
-  width: auto;
-  display: block;
-}
-
-.shell-user {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  font-size: 0.88rem;
-  color: var(--muted);
-}
-
-.shell-user-name {
-  max-width: 40vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.shell-logout {
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--navy-700);
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.shell-logout:hover {
-  background: var(--field-bg);
-  border-color: #c6cedb;
+  flex: 1;
+  min-height: 0;
 }
 
 .shell-main {
   flex: 1;
-  width: 100%;
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+  min-width: 0;
+  overflow: auto;
 }
 
-@media (max-width: 520px) {
-  .shell-user-name {
-    display: none;
+@media (max-width: 768px) {
+  .shell-body {
+    flex-direction: column;
   }
 }
