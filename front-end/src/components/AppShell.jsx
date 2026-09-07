@@ -1,38 +1,45 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getUser, logout } from "../lib/auth";
+import Navbar from "./Navbar";
+import Sidebar from "./Sidebar";
+import { NAV_ITEMS } from "./navItems";
 import "./AppShell.css";
 
+function resolveActivePage(pathname) {
+  const match = NAV_ITEMS.find((item) => pathname.startsWith(item.path));
+  return match?.key ?? "dashboard";
+}
+
 /**
- * Layout for authenticated pages: top bar with the logo + sign-out,
- * and an <Outlet /> where the routed page renders.
+ * Layout for authenticated pages: navbar, sidebar, and page content via <Outlet />.
  */
 export default function AppShell() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = getUser();
+  const employeeName = user?.name || user?.email || "Bank Agent";
+  const activePage = resolveActivePage(location.pathname);
 
-  function handleLogout() {
+  function handleNavigate(key) {
+    const item = NAV_ITEMS.find((entry) => entry.key === key);
+    if (item) navigate(item.path);
+  }
+
+  function handleSignOut() {
     logout();
     navigate("/login", { replace: true });
   }
 
   return (
     <div className="shell">
-      <header className="shell-bar">
-        <Link to="/" className="shell-brand">
-          <img src="/cib-logo.png" alt="CIB" />
-        </Link>
+      <Navbar employeeName={employeeName} onSignOut={handleSignOut} />
 
-        <div className="shell-user">
-          <span className="shell-user-name">{user?.name || user?.email}</span>
-          <button type="button" className="shell-logout" onClick={handleLogout}>
-            Sign out
-          </button>
-        </div>
-      </header>
-
-      <main className="shell-main">
-        <Outlet />
-      </main>
+      <div className="shell-body">
+        <Sidebar activePage={activePage} onNavigate={handleNavigate} />
+        <main className="shell-main">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

@@ -31,6 +31,22 @@
 }
 
 .notfound-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: auto;
   padding: 0.7rem 1.4rem;
+  border: none;
+  border-radius: 9px;
+  background: var(--navy-700);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.notfound-btn:hover {
+  background: var(--accent-dark);
 }
