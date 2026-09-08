@@ -24,16 +24,53 @@ src/
   lib/
     api.js              fetch wrapper (base URL, auth header, error handling)
     auth.js             login / logout / getUser / isAuthenticated  (localStorage)
+  lib/format.js          formatEGP / formatNumber / formatPercent
   components/
-    ProtectedRoute.jsx  redirects to /login when not signed in
+<<<<<<< HEAD
+    ProtectedRoute.jsx  gate for signed-in routes (also forces /set-password)
     AuthShell.jsx       centered-card layout for public pages (login, etc.)
     AppShell.jsx        top-bar layout for signed-in pages (<Outlet/> inside)
     Icons.jsx           shared inline SVG icons
   pages/
     Login.jsx           POST /api/auth/loginUser, stores JWT, redirects
+    SetPassword.jsx     forced first-login password reset
     Dashboard.jsx       placeholder landing page after login
     NotFound.jsx        404
 ```
+
+### First-login password reset — needs backend support
+
+`SetPassword.jsx` + the `ProtectedRoute` guard are ready, but stay dormant until
+the backend provides (see the contract comment in `src/lib/auth.js`):
+
+1. `POST /auth/loginUser` returns `mustChangePassword: true` for accounts that
+   still have their CIB-issued temporary password.
+2. `POST /auth/changePassword` (Bearer token) with `{ currentPassword, newPassword }`
+   — verifies, updates the hash, clears the flag.
+
+Until then login behaves exactly as before (no reset is forced).
+=======
+    ProtectedRoute.jsx   redirects to /login when not signed in
+    AuthShell.jsx        centered-card layout for public pages (login, etc.)
+    AppShell.jsx         top-bar layout for signed-in back-office pages
+    InstitutionLayout.jsx  sidebar layout for the institution portal (/institution/*)
+    ComingSoon.jsx       stub page for not-yet-built sections
+    Icons.jsx            shared inline SVG icons
+  pages/
+    Login.jsx            POST /api/auth/loginUser, stores JWT, redirects
+    Dashboard.jsx        back-office landing (bank_employee)
+    NotFound.jsx         404
+    institution/         the institution portal
+      InstitutionDashboard.jsx   dashboard (KPIs, charts, activity, payments)
+      dashboardData.js           mock figures (kept internally consistent)
+      charts.jsx / widgets.jsx / icons.jsx
+```
+
+Routing by role: after login, `institution` accounts land on `/institution`
+(sidebar layout); everyone else gets the back-office `/` view. The institution
+dashboard is lazy-loaded so its chart library (recharts) stays out of the login
+bundle.
+>>>>>>> origin/feat/institution-dashboard
 
 ## Adding a page (one branch + one PR per page)
 
