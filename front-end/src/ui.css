@@ -52,6 +52,19 @@
 .input-shell:has(input[aria-invalid="true"]) {
   border-color: var(--danger-border);
 }
+.input-shell select {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0.8rem 0;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--ink);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
 
 .input-icon {
   display: inline-flex;
@@ -160,6 +173,16 @@
   background: var(--danger-bg);
   border: 1px solid var(--danger-border);
   color: var(--danger-ink);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.alert-success {
+  margin-bottom: 1.1rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--success-bg);
+  border: 1px solid #b7e4c7;
+  color: var(--success-ink);
   border-radius: 8px;
   font-size: 0.875rem;
   line-height: 1.45;

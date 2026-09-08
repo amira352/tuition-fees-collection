@@ -1,5 +1,6 @@
 import "./Sidebar.css";
 import { NAV_ITEMS } from "./navItems";
+import { getUser } from "../lib/auth";
 
 export { NAV_ITEMS };
 
@@ -8,9 +9,14 @@ export { NAV_ITEMS };
  * `onNavigate` fires with the clicked item's key.
  */
 export default function Sidebar({ activePage = "dashboard", onNavigate }) {
+  const role = getUser()?.role;
+  const items = NAV_ITEMS.filter(
+    (item) => !item.roles || item.roles.includes(role)
+  );
+
   return (
     <nav className="sidebar">
-      {NAV_ITEMS.map((item) => (
+      {items.map((item) => (
         <button
           key={item.key}
           type="button"
