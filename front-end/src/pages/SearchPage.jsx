@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./shared.css";
 import "../Styles/SearchPage.css";
 
@@ -24,6 +25,7 @@ function formatAmount(amount, currency) {
 }
 
 export default function SearchPage() {
+  const navigate = useNavigate();
   const [nationalId, setNationalId] = useState("29901011234567");
   const [invoices, setInvoices] = useState(PLACEHOLDER_INVOICES);
   const [selectedIds, setSelectedIds] = useState(
@@ -69,8 +71,8 @@ export default function SearchPage() {
   };
 
   const handleProceedToPayment = () => {
-    // TODO: route to the settlement page with the selected invoice ids
-    console.log("Proceed to payment for:", Array.from(selectedIds));
+    const selectedInvoices = invoices.filter((inv) => selectedIds.has(inv.id));
+    navigate("/payment", { state: { invoices: selectedInvoices } });
   };
 
   return (
