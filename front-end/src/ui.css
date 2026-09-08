@@ -91,7 +91,7 @@
   border-radius: 4px;
 }
 
-.btn {
+.auth-card .btn {
   margin-top: 0.75rem;
   display: inline-flex;
   align-items: center;
@@ -113,21 +113,21 @@
   transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
 }
 
-.btn:hover:not(:disabled) {
+.auth-card .btn:hover:not(:disabled) {
   background: var(--accent-dark);
   box-shadow: 0 8px 20px -6px rgba(36, 95, 169, 0.6);
 }
 
-.btn:active:not(:disabled) {
+.auth-card .btn:active:not(:disabled) {
   transform: translateY(1px);
 }
 
-.btn:focus-visible {
+.auth-card .btn:focus-visible {
   outline: 2px solid var(--navy-900);
   outline-offset: 2px;
 }
 
-.btn:disabled {
+.auth-card .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
