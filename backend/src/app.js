@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes.js";
 import bankRoutes from "./routes/searchByid.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import institutionFeeUploadRoutes from "./routes/institutionFeeUpload.routes.js";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.use("/api/bank", bankRoutes);
+app.use("/api/institutions", institutionFeeUploadRoutes);
 
 app.use(errorHandler);
 
