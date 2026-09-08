@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+// src/App.jsx
 import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -8,21 +8,24 @@ import ComingSoon from "./components/ComingSoon";
 import Login from "./pages/Login";
 import SetPassword from "./pages/SetPassword";
 import Dashboard from "./pages/Dashboard";
+import SearchPage from "./pages/SearchPage";
+import PlaceholderPage from "./pages/PlaceholderPage";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 
-// The institution dashboard pulls in the charting library — load it on demand
-// so it doesn't weigh down the login page.
 const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
 );
 
-// "/" sends institutions to their portal; everyone else gets the back-office view.
 function Home() {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
   return getUser()?.role === "institution" ? (
     <Navigate to="/institution" replace />
   ) : (
-    <Dashboard />
+    <Navigate to="/dashboard" replace />
   );
 }
 
@@ -30,39 +33,20 @@ export default function App() {
   return (
     <Suspense fallback={<div className="route-loading">Loading…</div>}>
       <Routes>
-        {/* Public */}
         <Route
           path="/login"
           element={isAuthenticated() ? <Navigate to="/" replace /> : <Login />}
         />
 
-<<<<<<< HEAD
-      {/* First-login password reset — signed in, but not yet let into the app */}
-      <Route
-        path="/set-password"
-        element={
-          <ProtectedRoute allowPasswordChange>
-            <SetPassword />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/set-password"
+          element={
+            <ProtectedRoute allowPasswordChange>
+              <SetPassword />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Authenticated area — shares the AppShell layout */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/" element={<Dashboard />} />
-        {/*
-          New authenticated pages go here — one <Route> each, e.g.
-          <Route path="/students" element={<Students />} />
-        */}
-      </Route>
-=======
-        {/* Institution portal — sidebar layout */}
         <Route
           path="/institution"
           element={
@@ -80,45 +64,6 @@ export default function App() {
           <Route path="notifications" element={<ComingSoon />} />
           <Route path="profile" element={<ComingSoon />} />
         </Route>
->>>>>>> origin/feat/institution-dashboard
-
-        {/* Back-office area — top-bar layout */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <AppShell />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/" element={<Home />} />
-          {/*
-            New back-office pages go here — one <Route> each, e.g.
-            <Route path="/students" element={<Students />} />
-          */}
-        </Route>
-
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
-=======
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import LoginPage from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import SearchPage from "./pages/SearchPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
-import NotFound from "./pages/NotFound";
-import ProtectedRoute from "./components/ProtectedRoute";
-import AppShell from "./components/AppShell";
-import { isAuthenticated } from "./lib/auth";
-
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/login"
-          element={isAuthenticated() ? <Navigate to="/dashboard" replace /> : <LoginPage />}
-        />
 
         <Route
           element={
@@ -131,15 +76,12 @@ export default function App() {
           <Route path="/browse" element={<SearchPage />} />
           <Route path="/history" element={<PlaceholderPage title="Transaction History" />} />
           <Route path="/receipts" element={<PlaceholderPage title="Receipts" />} />
+          <Route path="/admin" element={<Admin />} />
         </Route>
 
-        <Route
-          path="/"
-          element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />}
-        />
+        <Route path="/" element={<Home />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </BrowserRouter>
->>>>>>> origin/BOsearch-front
+    </Suspense>
   );
 }
