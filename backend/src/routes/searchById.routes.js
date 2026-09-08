@@ -19,9 +19,9 @@ const router = express.Router();
 router.post(
   "/parents/search",
 
-  authenticate,
+  authenticate(),
 
-  authorizeRoles("bank_employee"),
+  authorizeRoles("back_office"),
 
   searchParent
 );
