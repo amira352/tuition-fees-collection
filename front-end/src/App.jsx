@@ -11,6 +11,8 @@ import Dashboard from "./pages/Dashboard";
 import SearchPage from "./pages/SearchPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import Admin from "./pages/Admin";
+import InstitutionsManagement from "./pages/InstitutionsManagement";
+import BackOfficeManagement from "./pages/BackOfficeManagement";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 
@@ -76,7 +78,30 @@ export default function App() {
           <Route path="/browse" element={<SearchPage />} />
           <Route path="/history" element={<PlaceholderPage title="Transaction History" />} />
           <Route path="/receipts" element={<PlaceholderPage title="Receipts" />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/institutions"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <InstitutionsManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/back-office"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <BackOfficeManagement />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         <Route path="/" element={<Home />} />
