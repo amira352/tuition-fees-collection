@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { apiPost } from "../lib/api";
+import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { apiPost } from "../lib/api";
 import {
   BuildingIcon,
   MailIcon,
@@ -17,8 +20,7 @@ const INSTITUTION_TYPES = [
   { value: "university", label: "University" },
 ];
 
-// نفس policy الباك اند (backend/src/utils/password.util.js) عشان الخطأ يبان
-// في الفورم على طول بدل ما ينتظر رد الـ server.
+
 const SPECIAL_CHARACTERS = "!@#$%^&*()-_=+[]{};:'\",.<>/?\\|`~";
 
 function passwordProblems(password) {
@@ -33,7 +35,11 @@ function passwordProblems(password) {
 }
 
 export default function Admin() {
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") === "employee" ? "employee" : "institution";
   const [tab, setTab] = useState("institution");
+  
+  
 
   return (
     <div className="page">
