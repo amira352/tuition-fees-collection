@@ -1,5 +1,9 @@
 -- Run before every run of test-idempotency.sh.
 
+delete from receipts
+ where payment_id in (select id from payments
+                       where parent_id = '11111111-1111-1111-1111-111111111111');
+
 delete from payment_idempotency where idempotency_key like 'test-key-%';
 
 delete from payment_idempotency
