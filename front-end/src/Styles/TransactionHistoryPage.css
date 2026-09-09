@@ -7,10 +7,37 @@
   margin-bottom: 1.25rem;
 }
 
+/* Search bar wrapper with relative positioning */
 .th-search {
+  position: relative;
+  display: flex;
+  align-items: center;
   flex: 1;
   min-width: 16rem;
   max-width: 26rem;
+}
+
+/* Position and scale the magnifying glass icon */
+.th-search .input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Offset input text so it does not overlap the icon */
+.th-search .field-input {
+  width: 100%;
+  height: 38px;
+  padding-left: 38px !important;
+  padding-right: 12px;
+  font-size: 0.85rem;
+  box-sizing: border-box;
 }
 
 table {
