@@ -6,8 +6,8 @@ import { NAV_ITEMS } from "./navItems";
 import "./AppShell.css";
 
 function resolveActivePage(pathname) {
-  const match = NAV_ITEMS.find((item) => pathname === item.path || pathname.startsWith(`${item.path}/`));
-  return match?.key ?? null;
+  const match = NAV_ITEMS.find((item) => pathname.startsWith(item.path));
+  return match?.key ?? "dashboard";
 }
 
 /**

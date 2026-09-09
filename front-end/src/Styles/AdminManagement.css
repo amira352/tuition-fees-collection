@@ -1,0 +1,178 @@
+/* Shared styles for InstitutionsManagement.jsx and BackOfficeManagement.jsx */
+
+.mgmt-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.mgmt-header-row .page-title,
+.mgmt-header-row .page-subtitle {
+  margin: 0;
+}
+
+.mgmt-header-row .page-subtitle {
+  margin-top: 0.4rem;
+}
+
+.mgmt-header-row .btn {
+  flex-shrink: 0;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.9rem;
+  margin: 1.5rem 0;
+}
+
+.stat-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.stat-delta-muted {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 860px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Table — namespaced so it doesn't depend on any other page's CSS */
+.mgmt-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.mgmt-table-wrap thead th {
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  background: #f7f7f8;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  font-weight: 600;
+}
+
+.mgmt-table-wrap tbody td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f0f1f3;
+  vertical-align: middle;
+}
+
+.mgmt-table-wrap tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mgmt-table-wrap tbody tr:hover {
+  background: #fafbfc;
+}
+
+.mgmt-actions-cell {
+  text-align: right;
+}
+
+.btn-manage {
+  padding: 0.35rem 0.95rem;
+  font-size: 0.8rem;
+  border-radius: 999px;
+}
+
+/* Details modal opened by "Manage" */
+.mgmt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 27, 69, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+
+.mgmt-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 26rem;
+  padding: 1.5rem 1.65rem;
+  box-shadow: 0 20px 45px -12px rgba(11, 27, 69, 0.35);
+}
+
+.mgmt-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.mgmt-modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--navy-900);
+}
+
+.mgmt-modal-close {
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.mgmt-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #f0f1f3;
+  font-size: 0.88rem;
+}
+
+.mgmt-detail-row:last-of-type {
+  border-bottom: none;
+}
+
+.mgmt-detail-label {
+  color: var(--muted);
+}
+
+.mgmt-detail-value {
+  color: var(--ink);
+  font-weight: 600;
+  text-align: right;
+}
+
+.mgmt-modal-footer {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+}
