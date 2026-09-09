@@ -46,6 +46,60 @@
   background: #fff;
 }
 
+/* Constrain and size search bar SVG icons */
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.input-with-icon svg.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  color: #94a3b8;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.search-input-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.search-input-group .field-input {
+  width: 100%;
+  height: 48px;
+  padding-left: 44px !important;
+  padding-right: 14px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.btn-search {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-search svg.btn-icon {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  max-width: 18px !important;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
 .table-header-row {
   display: flex;
   align-items: center;

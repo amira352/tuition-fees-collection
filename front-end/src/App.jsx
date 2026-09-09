@@ -1,4 +1,3 @@
-// src/App.jsx
 import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -9,6 +8,9 @@ import Login from "./pages/Login";
 import SetPassword from "./pages/SetPassword";
 import Dashboard from "./pages/Dashboard";
 import SearchPage from "./pages/SearchPage";
+import FeePaymentPage from "./pages/FeePaymentPage";
+import ReceiptPage from "./pages/ReceiptPage";
+import ReceiptsPage from "./pages/ReceiptsPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import Admin from "./pages/Admin";
 import InstitutionsManagement from "./pages/InstitutionsManagement";
@@ -76,8 +78,11 @@ export default function App() {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/browse" element={<SearchPage />} />
+          <Route path="/payment" element={<FeePaymentPage />} />
+          <Route path="/receipt" element={<ReceiptPage />} />
           <Route path="/history" element={<PlaceholderPage title="Transaction History" />} />
-          <Route path="/receipts" element={<PlaceholderPage title="Receipts" />} />
+          <Route path="/receipts" element={<ReceiptsPage />} />
+
           <Route
             path="/admin"
             element={
