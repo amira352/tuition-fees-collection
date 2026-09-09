@@ -141,6 +141,7 @@ const runPayment = async (
 
   const approved = [];
   let declined = null;
+  let needsOtp = null;
   let outcomeUnknown = false;
 
   for (const stored of storedTenders) {
@@ -164,7 +165,10 @@ const runPayment = async (
           ? await authoriseCard({
               card: fromRequest.card,
               amount: stored.amount,
-              orderReference: `${paymentId}-${stored.id}`,
+              // the bank caps order_reference at 40 characters, and two
+              // joined uuids are 73. first eight of each is still unique
+              // enough to tell one leg of one payment from any other
+              orderReference: `${paymentId.slice(0, 8)}-${stored.id.slice(0, 8)}`,
               nationalId: fromRequest.national_id,
               mobile: fromRequest.mobile
             })
@@ -173,12 +177,31 @@ const runPayment = async (
               amount: stored.amount
             });
 
+      // The bank has accepted the card but wants an OTP from the customer.
+      // That is not a decline - there is a real authorisation sitting open
+      // at the bank. Treating it as declined would tell the customer their
+      // payment failed while their money is held.
+      if (result.status === "PENDING_3DS") {
+        needsOtp = { tender: stored, providerRef: result.providerRef };
+        break;
+      }
+
       if (!result.approved) {
         declined = { tender: stored, reason: result.reason };
         break;
       }
 
-      approved.push({ tender_id: stored.id, provider_ref: result.providerRef });
+      // For a card the bank hands back the masked number. That is the only
+      // part of a card we are allowed to keep, and without it a receipt
+      // cannot say which card was used.
+      const masked =
+        result.raw && result.raw.card ? result.raw.card.masked_number : null;
+
+      approved.push({
+        tender_id: stored.id,
+        provider_ref: result.providerRef,
+        account_ref: masked
+      });
     } catch (err) {
       if (err.outcomeUnknown) {
         outcomeUnknown = true;
@@ -200,6 +223,31 @@ const runPayment = async (
     throw error;
   }
 
+  if (needsOtp) {
+    // Do not try to cancel the 3-D Secure charge. The bank only allows a
+    // void on an AUTHORISED payment, and this one is PENDING_3DS with
+    // captured_amount 0 - no money has moved, so abandoning it is safe.
+    // Any leg that DID go through still has to come back.
+    for (const done of approved) {
+      if (done.provider_ref) {
+        await reverseAuthorisation(done.provider_ref);
+      }
+    }
+
+    await markPaymentFailed(
+      paymentId,
+      "This card needs 3-D Secure, which is not supported yet"
+    );
+
+    const error = new Error(
+      "This card requires a one-time password from the customer's bank. That is not supported yet - please use another card or pay from an account."
+    );
+    error.statusCode = 501;
+    error.code = "THREE_DS_NOT_SUPPORTED";
+    error.field = null;
+    throw error;
+  }
+
   if (declined) {
     // put back whatever we already took, then fail the whole payment.
     // no fee is left half settled.
@@ -209,12 +257,13 @@ const runPayment = async (
       }
     }
 
+    // a card has no account_ref yet at this point, so fall back to the method
     const where = declined.tender.account_ref || declined.tender.method;
 
     await markPaymentFailed(paymentId, `Declined on ${where}: ${declined.reason}`);
 
     const error = new Error(
-      `Payment declined on account ${declined.tender.account_ref}: ${declined.reason}`
+      `Payment declined on ${where}: ${declined.reason}`
     );
     error.statusCode = 402;
     error.code = "CARD_DECLINED";
