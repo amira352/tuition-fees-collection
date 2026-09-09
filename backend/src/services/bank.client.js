@@ -46,7 +46,23 @@ export const reverseAuthorisation = async (providerRef) => {
   }
 
   try {
-    const response = await bankClient.post(`/api/v1/payments/cards/${providerRef}/void`);
+    // void only works on a charge the bank has authorised but not yet taken.
+    // We charge with capture: true, so most charges are already CAPTURED and
+    // the money has to come back as a refund instead. Try void first because
+    // it leaves nothing on the customer's statement; fall back to refund.
+    let response;
+
+    try {
+      response = await bankClient.post(`/api/v1/payments/cards/${providerRef}/void`);
+    } catch (voidError) {
+      const state = voidError.response?.data?.error?.code;
+
+      if (state !== "INVALID_PAYMENT_STATE") {
+        throw voidError;
+      }
+
+      response = await bankClient.post(`/api/v1/payments/cards/${providerRef}/refund`);
+    }
     return { reversed: true, providerRef, data: response.data };
   } catch (error) {
     console.error("Bank service error (void):", error.response?.data || error.message);
@@ -99,9 +115,38 @@ export const authoriseCard = async ({ card, amount, orderReference, nationalId, 
       return { approved: false, reason: error.response.data?.error?.message || "Card declined" };
     }
 
-    console.error("Bank service error (card charge):", error.response?.data || error.message);
-    const serviceError = new Error("Unable to reach the bank for card authorisation");
+    // The issuer itself broke. The bank answered, but it does not know the
+    // outcome either - the charge may or may not have gone through. That is
+    // the same situation as no answer at all, so it must not be reported as
+    // a failure the caller can safely retry.
+    if (error.response.status === 502 || error.response.status === 504) {
+      const serviceError = new Error(
+        error.response.data?.error?.message ||
+          "The bank could not complete this charge and did not confirm the outcome"
+      );
+      serviceError.statusCode = 502;
+      serviceError.outcomeUnknown = true;
+      throw serviceError;
+    }
+
+    // The bank answered - it just did not accept what we sent. Saying
+    // "unable to reach the bank" here sends whoever is debugging it looking
+    // at the network, when the real problem is in our own request.
+    const detail = error.response.data && error.response.data.error;
+    const fields = detail && detail.details && detail.details.fields;
+
+    console.error(
+      `Bank rejected the card charge (HTTP ${error.response.status}):`,
+      JSON.stringify(error.response.data)
+    );
+
+    const because = fields && fields.length
+      ? fields.map((f) => `${f.field} - ${f.message}`).join("; ")
+      : (detail && detail.message) || `HTTP ${error.response.status}`;
+
+    const serviceError = new Error(`The bank rejected this charge: ${because}`);
     serviceError.statusCode = 502;
+    serviceError.code = "BANK_REJECTED_REQUEST";
     throw serviceError;
   }
 };
