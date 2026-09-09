@@ -9,16 +9,12 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppShell from "./components/AppShell";
-import { isAuthenticated } from "./lib/auth";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/login"
-          element={isAuthenticated() ? <Navigate to="/dashboard" replace /> : <LoginPage />}
-        />
+        <Route path="/login" element={<LoginPage />} />
 
         <Route
           element={
@@ -35,10 +31,7 @@ export default function App() {
           <Route path="/receipts" element={<ReceiptsPage />} />
         </Route>
 
-        <Route
-          path="/"
-          element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />}
-        />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
