@@ -32,6 +32,7 @@ app.use("/api/receipts", receiptRoutes);
 
 app.use("/api/bank", bankRoutes);
 app.use("/api/institutions", institutionFeeUploadRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use("/api/epp", eppRoutes); // ADDED
 
