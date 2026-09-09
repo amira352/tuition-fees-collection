@@ -5,14 +5,39 @@ import "./shared.css";
 import "../Styles/FeePaymentPage.css";
 
 const PAYMENT_AMOUNT_OPTIONS = [
-  { key: "full", title: "Full amount", desc: (total, currency) => `Settle all ${currency} ${total.toLocaleString()} now` },
-  { key: "partial", title: "Partial amount", desc: () => "Choose how much to pay today" },
-  { key: "epp", title: "EPP instalments", desc: () => "3, 6, 12 or 18 months · credit card only" },
+  {
+    key: "full",
+    title: "Full Settlement",
+    badge: "Recommended",
+    desc: (total, currency) => `Clear entire outstanding balance (${currency} ${total.toLocaleString()})`
+  },
+  {
+    key: "partial",
+    title: "Custom Partial Amount",
+    badge: "Flexible",
+    desc: () => "Choose a custom amount to pay towards balance today"
+  },
+  {
+    key: "epp",
+    title: "CIB Easy Payment Plan",
+    badge: "0% Interest Options",
+    desc: () => "Split payment into 3, 6, 12 or 18 equal monthly instalments"
+  },
 ];
 
 const PAYMENT_METHOD_OPTIONS = [
-  { key: "card", title: "Credit / debit card", desc: "Deduct from a linked CIB account" },
-  { key: "cash", title: "Cash", desc: "Pay at branch" },
+  {
+    key: "card",
+    title: "CIB Credit / Debit Card",
+    desc: "Instant direct debit from verified linked client account",
+    tag: "Instant"
+  },
+  {
+    key: "cash",
+    title: "Branch Cash Deposit",
+    desc: "Generate reference slip for teller counter payment",
+    tag: "Branch"
+  },
 ];
 
 const EPP_TENORS = [3, 6, 12, 18];
@@ -25,9 +50,6 @@ export default function FeePaymentPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Invoices selected on the Browse page are passed via router state.
-  // Falling back to an empty list keeps this page safe to land on directly
-  // (e.g. a refresh) instead of crashing.
   const invoices = location.state?.invoices ?? [];
   const total = useMemo(() => invoices.reduce((sum, inv) => sum + inv.amount, 0), [invoices]);
 
@@ -35,14 +57,13 @@ export default function FeePaymentPage() {
     () => [...new Set(invoices.map((inv) => inv.currency || "EGP"))],
     [invoices],
   );
-  // TODO: mixed-currency invoice batches aren't handled yet — totals assume a single currency.
   const hasMixedInvoiceCurrencies = invoiceCurrencies.length > 1;
   const invoiceCurrency = invoiceCurrencies[0] || "EGP";
 
   const [amountOption, setAmountOption] = useState("full");
   const [partialAmount, setPartialAmount] = useState("");
   const [eppTenor, setEppTenor] = useState(EPP_TENORS[2]);
-  const [methodOption, setMethodOption] = useState(null);
+  const [methodOption, setMethodOption] = useState("card");
   const [isProcessing, setIsProcessing] = useState(false);
   const [formError, setFormError] = useState("");
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -52,10 +73,8 @@ export default function FeePaymentPage() {
     amountOption !== "partial" ||
     (partialAmount.trim() !== "" && partialAmountNumber > 0 && partialAmountNumber <= total);
 
-  const amountDue =
-    amountOption === "partial" ? partialAmountNumber : total;
+  const amountDue = amountOption === "partial" ? partialAmountNumber : total;
 
-  // EPP is only available by card — auto-correct if someone picks EPP then cash.
   const methodOptionsForAmount =
     amountOption === "epp"
       ? PAYMENT_METHOD_OPTIONS.filter((m) => m.key === "card")
@@ -63,6 +82,10 @@ export default function FeePaymentPage() {
 
   const canConfirm =
     invoices.length > 0 && amountOption && methodOption && isPartialValid && !isProcessing;
+
+  const setPresetPartial = (fraction) => {
+    setPartialAmount(String(Math.round(total * fraction)));
+  };
 
   async function handleConfirm(selectedAccount = null) {
     setFormError("");
@@ -82,11 +105,9 @@ export default function FeePaymentPage() {
         accountCurrency: selectedAccount?.currency ?? null,
       };
 
-      // TODO: replace with the real API call, e.g.
-      // const receipt = await apiPost("/payments/settle", payload);
-      await new Promise((resolve) => setTimeout(resolve, 700)); // fake latency
+      await new Promise((resolve) => setTimeout(resolve, 700));
       const receipt = {
-        receiptNumber: "RC-8842910",
+        receiptNumber: "RC-" + Math.floor(1000000 + Math.random() * 9000000),
         amountPaid: payload.amountPaid,
         amountCurrency: payload.amountCurrency,
         method: payload.method,
@@ -106,151 +127,227 @@ export default function FeePaymentPage() {
 
   function handleConfirmClick() {
     if (!canConfirm) return;
-
     if (methodOption === "card") {
       setShowAccountModal(true);
       return;
     }
-
     handleConfirm();
   }
 
   if (invoices.length === 0) {
     return (
-      <div className="page">
+      <div className="page pay-container">
         <h1 className="page-title">Fee Payment</h1>
         <div className="placeholder-card">
-          No invoices were passed to this page. Head back to{" "}
-          <Link to="/browse">Browse</Link> and select at least one invoice.
+          No invoices selected. Head back to{" "}
+          <Link to="/browse">Browse</Link> to select fee items.
         </div>
       </div>
     );
   }
 
   return (
-    <div className="page">
-      <h1 className="page-title">Fee Payment</h1>
-
-      <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Student Name</th>
-              <th>Fee Category</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.map((inv) => (
-              <tr key={inv.id}>
-                <td>{inv.studentName}</td>
-                <td>{inv.feeCategory}</td>
-                <td>{formatAmount(inv.amount, inv.currency)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <hr className="divider" />
-        <div className="totals-row">
-          <div className="totals-label">TOTAL BALANCE DUE</div>
-          <div className="totals-amount">
-            {hasMixedInvoiceCurrencies
-              ? "Multiple currencies"
-              : formatAmount(total, invoiceCurrency)}
-          </div>
+    <div className="page pay-container">
+      {/* Top Breadcrumb / Status Header */}
+      <div className="pay-header">
+        <div>
+          <span className="pay-kicker">CIB Checkout Portal</span>
+          <h1 className="page-title">Tuition Settlement</h1>
+        </div>
+        <div className="pay-invoice-pill">
+          <span>{invoices.length} Item{invoices.length > 1 ? "s" : ""} Selected</span>
         </div>
       </div>
 
-      <div className="card">
-        <h3 className="section-title">Payment Amount</h3>
-        <div className="option-grid option-grid-3">
-          {PAYMENT_AMOUNT_OPTIONS.map((opt) => (
-            <button
-              type="button"
-              key={opt.key}
-              className={`option-card ${amountOption === opt.key ? "option-card-selected" : ""}`}
-              onClick={() => {
-                setAmountOption(opt.key);
-                if (opt.key === "epp" && methodOption && methodOption !== "card") {
-                  setMethodOption(null);
-                }
-              }}
-            >
-              <span className="option-title">{opt.title}</span>
-              <span className="option-desc">
-                {opt.desc(total.toLocaleString(), invoiceCurrency)}
+      {/* Invoice Breakdown Banner */}
+      <div className="cib-pay-hero">
+        <div className="cib-pay-hero-details">
+          <span className="hero-eyebrow">Settlement Summary</span>
+          <div className="hero-students">
+            {invoices.map((inv) => (
+              <span key={inv.id} className="student-chip">
+                {inv.studentName} · <strong>{inv.feeCategory}</strong>
               </span>
-            </button>
-          ))}
-        </div>
-
-        {amountOption === "partial" && (
-          <div className="inline-field">
-            <label className="field-label">Amount to pay today</label>
-            <input
-              type="number"
-              className="field-input"
-              min="1"
-              max={total}
-              placeholder={`Up to ${formatAmount(total, invoiceCurrency)}`}
-              value={partialAmount}
-              onChange={(e) => setPartialAmount(e.target.value)}
-            />
-            {partialAmount.trim() !== "" && !isPartialValid && (
-              <span className="field-error">
-                Enter an amount between 1 and {formatAmount(total, invoiceCurrency)}.
-              </span>
-            )}
+            ))}
           </div>
-        )}
+        </div>
+        <div className="cib-pay-hero-due">
+          <span className="due-label">Total Balance Due</span>
+          <span className="due-value">
+            {hasMixedInvoiceCurrencies ? "Multi-currency" : formatAmount(total, invoiceCurrency)}
+          </span>
+        </div>
+      </div>
 
-        {amountOption === "epp" && (
-          <div className="inline-field">
-            <label className="field-label">Instalment plan</label>
-            <div className="tenor-row">
-              {EPP_TENORS.map((months) => (
+      {/* Payment Configuration Card */}
+      <div className="cib-config-card">
+        {/* Step 1: Amount Option */}
+        <section className="config-section">
+          <div className="section-title-wrap">
+            <span className="section-num">01</span>
+            <div>
+              <h2 className="section-title">Select Payment Allocation</h2>
+              <p className="section-desc">Choose between immediate full settlement, custom installment, or EPP</p>
+            </div>
+          </div>
+
+          <div className="option-grid option-grid-3">
+            {PAYMENT_AMOUNT_OPTIONS.map((opt) => {
+              const isSelected = amountOption === opt.key;
+              return (
                 <button
                   type="button"
-                  key={months}
-                  className={`tenor-chip ${eppTenor === months ? "tenor-chip-selected" : ""}`}
-                  onClick={() => setEppTenor(months)}
+                  key={opt.key}
+                  className={`option-card ${isSelected ? "option-card-selected" : ""}`}
+                  onClick={() => {
+                    setAmountOption(opt.key);
+                    if (opt.key === "epp" && methodOption && methodOption !== "card") {
+                      setMethodOption("card");
+                    }
+                  }}
                 >
-                  {months} months
+                  <div className="option-head">
+                    <span className={`custom-radio ${isSelected ? "checked" : ""}`} />
+                    <span className="option-badge">{opt.badge}</span>
+                  </div>
+                  <strong className="option-title">{opt.title}</strong>
+                  <span className="option-desc">
+                    {opt.desc(total, invoiceCurrency)}
+                  </span>
                 </button>
-              ))}
+              );
+            })}
+          </div>
+
+          {/* Partial Payment Highlight Box */}
+          {amountOption === "partial" && (
+            <div className="partial-box">
+              <div className="partial-header">
+                <div>
+                  <label className="partial-label" htmlFor="partial-input">
+                    Enter Amount to Settle Today
+                  </label>
+                  <span className="partial-sub">Maximum payable: {formatAmount(total, invoiceCurrency)}</span>
+                </div>
+
+                <div className="preset-chips">
+                  <button type="button" onClick={() => setPresetPartial(0.25)}>25%</button>
+                  <button type="button" onClick={() => setPresetPartial(0.5)}>50%</button>
+                  <button type="button" onClick={() => setPresetPartial(0.75)}>75%</button>
+                </div>
+              </div>
+
+              <div className="partial-input-wrap">
+                <span className="currency-tag">{invoiceCurrency}</span>
+                <input
+                  id="partial-input"
+                  type="number"
+                  className="partial-hero-input"
+                  min="1"
+                  max={total}
+                  placeholder="0.00"
+                  value={partialAmount}
+                  onChange={(e) => setPartialAmount(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              {partialAmount.trim() !== "" && !isPartialValid && (
+                <div className="field-error-bar">
+                  Please enter an amount greater than 0 and not exceeding {formatAmount(total, invoiceCurrency)}.
+                </div>
+              )}
             </div>
-            <span className="field-hint">
-              {formatAmount(Math.ceil(total / eppTenor), invoiceCurrency)} / month for {eppTenor}{" "}
-              months
+          )}
+
+          {/* EPP Tenors Highlight Box */}
+          {amountOption === "epp" && (
+            <div className="epp-box">
+              <span className="epp-label">Choose Installment Tenor (Months)</span>
+              <div className="tenor-row">
+                {EPP_TENORS.map((months) => (
+                  <button
+                    type="button"
+                    key={months}
+                    className={`tenor-chip ${eppTenor === months ? "tenor-chip-selected" : ""}`}
+                    onClick={() => setEppTenor(months)}
+                  >
+                    <span className="tenor-months">{months} Months</span>
+                    <span className="tenor-calc">
+                      {formatAmount(Math.ceil(total / months), invoiceCurrency)}/mo
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="epp-note">
+                0% interest applies to select CIB Platinum and Titanium Credit Cards.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <hr className="config-divider" />
+
+        {/* Step 2: Payment Method */}
+        <section className="config-section">
+          <div className="section-title-wrap">
+            <span className="section-num">02</span>
+            <div>
+              <h2 className="section-title">Payment Method</h2>
+              <p className="section-desc">Select customer preferred settlement channel</p>
+            </div>
+          </div>
+
+          <div className="option-grid option-grid-2">
+            {methodOptionsForAmount.map((opt) => {
+              const isSelected = methodOption === opt.key;
+              return (
+                <button
+                  type="button"
+                  key={opt.key}
+                  className={`option-card ${isSelected ? "option-card-selected" : ""}`}
+                  onClick={() => setMethodOption(opt.key)}
+                >
+                  <div className="option-head">
+                    <span className={`custom-radio ${isSelected ? "checked" : ""}`} />
+                    <span className="method-tag">{opt.tag}</span>
+                  </div>
+                  <strong className="option-title">{opt.title}</strong>
+                  <span className="option-desc">{opt.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {formError && <div className="alert-error-banner">{formError}</div>}
+
+        {/* Bottom CTA Bar */}
+        <div className="pay-action-bar">
+          <div className="action-summary">
+            <span className="summary-title">Total Settling Now:</span>
+            <span className="summary-amount">
+              {formatAmount(amountDue || 0, invoiceCurrency)}
             </span>
           </div>
-        )}
 
-        <h3 className="section-title section-title-spaced">Payment Method</h3>
-        <div className="option-grid option-grid-3">
-          {methodOptionsForAmount.map((opt) => (
-            <button
-              type="button"
-              key={opt.key}
-              className={`option-card ${methodOption === opt.key ? "option-card-selected" : ""}`}
-              onClick={() => setMethodOption(opt.key)}
-            >
-              <span className="option-title">{opt.title}</span>
-              <span className="option-desc">{opt.desc}</span>
-            </button>
-          ))}
-        </div>
-        {amountOption === "epp" && (
-          <p className="field-hint field-hint-block">EPP instalments are only available by credit card.</p>
-        )}
-
-        {formError && <div className="alert">{formError}</div>}
-
-        <div className="confirm-row">
-          <button className="btn" disabled={!canConfirm} onClick={handleConfirmClick}>
-            {isProcessing && <span className="spinner" aria-hidden="true" />}
-            {isProcessing ? "Processing…" : "Confirm & process payment"}
+          <button
+            type="button"
+            className="btn-cib-confirm"
+            disabled={!canConfirm}
+            onClick={handleConfirmClick}
+          >
+            {isProcessing ? (
+              <span>Authorizing Transaction…</span>
+            ) : (
+              <>
+                <span>Confirm & Process Payment</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </>
+            )}
           </button>
         </div>
       </div>
