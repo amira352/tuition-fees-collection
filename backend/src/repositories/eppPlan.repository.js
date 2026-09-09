@@ -25,7 +25,7 @@ export const createEppPlanRecord = async ({
       monthly_instalment: monthlyInstalment,
       start_date: startDate,
       annual_rate: annualRate,
-      instalments_paid: 0
+      installments_paid: 0
     })
     .select()
     .single();
