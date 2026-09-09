@@ -25,6 +25,7 @@ async function request(path, options = {}) {
   if (!res.ok) {
     const error = new Error(data?.message || "Request failed. Please try again.");
     error.status = res.status;
+    error.details = data?.details || null; // <--- Attach details here
     throw error;
   }
   return data;
