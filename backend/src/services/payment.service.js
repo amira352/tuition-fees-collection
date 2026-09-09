@@ -19,6 +19,8 @@ import {
   releaseKey
 } from "../repositories/idempotency.repository.js";
 
+import { issueReceipt } from "../repositories/receipt.repository.js";
+
 import { fingerprintRequest } from "../utils/fingerprint.js";
 
 const badRequest = (message, field) => {
@@ -219,6 +221,16 @@ const runPayment = async (
   }
 
   await settlePayment(paymentId, approved);
+
+  // The money has moved, so a receipt exists from here on. If issuing it
+  // fails the payment is still good - issue_receipt is safe to call again
+  // later, and a missing receipt is a smaller problem than a rolled back
+  // payment that actually went through.
+  try {
+    await issueReceipt(paymentId, employeeId);
+  } catch (err) {
+    console.error(`receipt not issued for payment ${paymentId}:`, err.message);
+  }
 
   return findPaymentById(paymentId);
 };
