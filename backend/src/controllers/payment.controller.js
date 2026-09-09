@@ -5,7 +5,13 @@ export const payFees = async (req, res, next) => {
     const { parentId, items, tenders, paymentType } = req.body;
 
     const payment = await createPayment(
-      { parentId, items, tenders, paymentType },
+      {
+        parentId,
+        items,
+        tenders,
+        paymentType,
+        idempotencyKey: req.get("Idempotency-Key")
+      },
       req.user.userId
     );
 

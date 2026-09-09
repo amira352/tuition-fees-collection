@@ -11,9 +11,24 @@ import {
   findPaymentById
 } from "../repositories/payment.repository.js";
 
+import {
+  claimKey,
+  findKey,
+  completeKey,
+  releaseKey
+} from "../repositories/idempotency.repository.js";
+
+import { fingerprintRequest } from "../utils/fingerprint.js";
+
 const badRequest = (message) => {
   const error = new Error(message);
   error.statusCode = 400;
+  return error;
+};
+
+const conflict = (message) => {
+  const error = new Error(message);
+  error.statusCode = 409;
   return error;
 };
 
@@ -61,18 +76,11 @@ const validateShape = ({ parentId, items, tenders }) => {
 };
 
 /**
- * Takes a payment.
- *
- * Three steps: record it as pending, ask the bank for the money, then
- * apply it to the fees. The bank call sits in the middle on purpose - we
- * never reduce a balance before the money is actually authorised.
+ * Records the payment, asks the bank for the money, then applies it to the
+ * fees. The bank call sits in the middle on purpose - we never reduce a
+ * balance before the money is actually authorised.
  */
-export const createPayment = async (
-  { parentId, items, tenders, paymentType = "full" },
-  employeeId
-) => {
-  validateShape({ parentId, items, tenders });
-
+const runPayment = async ({ parentId, items, tenders, paymentType }, employeeId) => {
   const paymentId = await createPendingPayment({
     parentId,
     employeeId,
@@ -127,4 +135,59 @@ export const createPayment = async (
   await settlePayment(paymentId, approved);
 
   return findPaymentById(paymentId);
+};
+
+/**
+ * Takes a payment.
+ *
+ * If the caller sends an Idempotency-Key we make sure the same request can
+ * never charge twice - a slow response and an impatient second click is the
+ * usual way that happens.
+ */
+export const createPayment = async (
+  { parentId, items, tenders, paymentType = "full", idempotencyKey },
+  employeeId
+) => {
+  validateShape({ parentId, items, tenders });
+
+  const request = { parentId, items, tenders, paymentType };
+
+  if (!idempotencyKey) {
+    return runPayment(request, employeeId);
+  }
+
+  const fingerprint = fingerprintRequest(request);
+
+  // claim the key before doing any work. if two requests arrive together
+  // only one can win the insert, and the loser reads back the winner's result
+  const claimed = await claimKey(idempotencyKey, fingerprint);
+
+  if (!claimed) {
+    const existing = await findKey(idempotencyKey);
+
+    if (!existing) {
+      throw conflict("That payment is still being processed. Try again shortly");
+    }
+
+    if (existing.request_fingerprint !== fingerprint) {
+      throw conflict("This key has already been used for a different payment");
+    }
+
+    if (existing.status === "completed") {
+      return findPaymentById(existing.payment_id);
+    }
+
+    throw conflict("That payment is still being processed. Try again shortly");
+  }
+
+  try {
+    const payment = await runPayment(request, employeeId);
+    await completeKey(idempotencyKey, payment.id);
+    return payment;
+  } catch (error) {
+    // a declined card should not burn the key, or the agent could never
+    // retry with the same one
+    await releaseKey(idempotencyKey);
+    throw error;
+  }
 };
