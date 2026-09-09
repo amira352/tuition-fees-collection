@@ -12,4 +12,4 @@ export const createNationalIdHmac = (nationalId) => {
     )
     .update(nationalId)
     .digest("hex");
-};  
+};
