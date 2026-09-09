@@ -97,3 +97,4 @@ export const listInstitutions = async () => {
 
   return data;
 };
+
