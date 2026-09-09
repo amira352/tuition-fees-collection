@@ -54,7 +54,9 @@ export const findTendersByPayment = async (paymentId) => {
   return data;
 };
 
-export const markPaymentFailed = async (paymentId) => {
+// The reason is stored so payment history can say what actually happened.
+// "failed" on its own is no use to whoever has to explain it at the counter.
+export const markPaymentFailed = async (paymentId, reason) => {
   await supabase
     .from("payment_tenders")
     .update({ status: "failed" })
@@ -63,7 +65,7 @@ export const markPaymentFailed = async (paymentId) => {
 
   const { error } = await supabase
     .from("payments")
-    .update({ status: "failed" })
+    .update({ status: "failed", failure_reason: reason || null })
     .eq("id", paymentId);
 
   if (error) {
