@@ -26,6 +26,7 @@ app.use("/api/payments", paymentRoutes);
 
 app.use("/api/bank", bankRoutes);
 app.use("/api/institutions", institutionFeeUploadRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use(errorHandler);
 

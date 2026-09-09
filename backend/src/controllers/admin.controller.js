@@ -1,7 +1,9 @@
 import {
   createBackOfficeUser,
   createInstitutionUser,
-  getAllUsers
+  getAllUsers,
+  deleteInstitution,
+  deleteBankEmployee
 } from "../services/admin.service.js";
 
 export const addBackOfficeUser = async (req, res, next) => {
@@ -49,6 +51,58 @@ export const listUsers = async (req, res, next) => {
     const users = await getAllUsers();
 
     return res.status(200).json(users);
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// DELETE INSTITUTION
+export const deleteInstitutionController = async (
+  req,
+  res,
+  next
+) => {
+
+  try {
+
+    const { institutionId } = req.params;
+
+    const result =
+      await deleteInstitution(institutionId);
+
+
+    return res.status(200).json(result);
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// DELETE BANK EMPLOYEE
+export const deleteBankEmployeeController = async (
+  req,
+  res,
+  next
+) => {
+
+  try {
+
+    const { employeeId } = req.params;
+
+    const adminId = req.user.id;
+
+
+    const result =
+      await deleteBankEmployee(
+        employeeId,
+        adminId
+      );
+
+
+    return res.status(200).json(result);
+
   } catch (error) {
     next(error);
   }
