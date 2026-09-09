@@ -1,0 +1,50 @@
+.th-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.th-search {
+  flex: 1;
+  min-width: 16rem;
+  max-width: 26rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+thead th {
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  background: #f7f7f8;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  font-weight: 600;
+}
+
+tbody td {
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: #fafbfc;
+}
+
+.mono {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.8rem;
+}
