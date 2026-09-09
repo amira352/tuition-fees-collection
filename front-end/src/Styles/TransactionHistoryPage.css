@@ -1,77 +1,228 @@
+/* ==========================================================================
+   CIB BRAND THEME TOKENS
+   ========================================================================== */
+:root {
+  --cib-navy: #002d62;
+  --cib-navy-light: #083c79;
+  --cib-orange: #ff6f00;
+  --cib-orange-hover: #e65100;
+  --cib-blue: #0072ce;
+  --cib-border: #e2e8f0;
+  --cib-surface: #ffffff;
+  --cib-text: #1e293b;
+  --cib-muted: #64748b;
+  --cib-shadow: 0 8px 24px rgba(0, 45, 98, 0.08);
+}
+
+/* Page Headers */
+.page-title {
+  color: var(--cib-navy) !important;
+  font-size: 1.85rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem !important;
+}
+
+.page-subtitle {
+  color: var(--cib-muted) !important;
+  font-size: 0.95rem !important;
+  margin-top: 0 !important;
+  margin-bottom: 1.75rem !important;
+}
+
+/* Card with CIB Top Accent Line */
+.card {
+  background: var(--cib-surface) !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--cib-border) !important;
+  border-top: 4px solid var(--cib-navy) !important;
+  box-shadow: var(--cib-shadow) !important;
+  padding: 1.75rem 2rem !important;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   TOOLBAR: TABS & SEARCH
+   ========================================================================== */
 .th-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.25rem;
   flex-wrap: wrap;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-/* Search bar wrapper with relative positioning */
+/* Filter Tabs */
+.admin-tabs {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  gap: 4px;
+}
+
+.admin-tab {
+  background: transparent;
+  border: none;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cib-muted);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-tab:hover {
+  color: var(--cib-navy);
+}
+
+.admin-tab.active {
+  background: var(--cib-navy) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 45, 98, 0.25);
+}
+
+/* Reactive Search Bar */
 .th-search {
   position: relative;
   display: flex;
   align-items: center;
   flex: 1;
-  min-width: 16rem;
+  min-width: 18rem;
   max-width: 26rem;
 }
 
-/* Position and scale the magnifying glass icon */
 .th-search .input-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: #94a3b8;
+  width: 17px;
+  height: 17px;
+  color: var(--cib-blue);
   pointer-events: none;
   z-index: 2;
 }
 
-/* Offset input text so it does not overlap the icon */
 .th-search .field-input {
   width: 100%;
-  height: 38px;
-  padding-left: 38px !important;
-  padding-right: 12px;
-  font-size: 0.85rem;
+  height: 42px;
+  padding-left: 42px !important;
+  padding-right: 14px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fbfcfe;
+  color: var(--cib-text);
+  outline: none;
   box-sizing: border-box;
+  transition: all 0.2s ease;
 }
 
+.th-search .field-input:focus {
+  border-color: var(--cib-orange) !important;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 111, 0, 0.15) !important;
+}
+
+/* ==========================================================================
+   TRANSACTIONS TABLE
+   ========================================================================== */
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
 }
 
 thead th {
   text-align: left;
-  font-size: 0.7rem;
+  font-size: 0.72rem !important;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-  background: #f7f7f8;
-  padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid var(--line);
-  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--cib-muted) !important;
+  background: #f8fafc !important;
+  padding: 0.85rem 1.25rem !important;
+  border-bottom: 1.5px solid var(--cib-border) !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
 }
 
 tbody td {
-  padding: 0.85rem 0.75rem;
-  border-bottom: 1px solid #f0f1f3;
+  padding: 1.05rem 1.25rem !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  font-size: 0.88rem;
+  color: var(--cib-text);
+  vertical-align: middle;
+}
+
+tbody tr {
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 tbody tr:last-child td {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
+/* Reactive Hover Effect on Rows */
 tbody tr:hover {
-  background: #fafbfc;
+  background: #f8fbff !important;
+}
+
+tbody td strong {
+  font-weight: 700;
+  color: var(--cib-navy);
 }
 
 .mono {
   font-family: ui-monospace, Menlo, monospace;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  color: var(--cib-navy);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   STATUS PILLS
+   ========================================================================== */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.status-settled {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.status-pending {
+  background: #fffbeb !important;
+  color: #d97706 !important;
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+
+.status-failed {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.placeholder-card {
+  padding: 3rem 1.5rem;
+  background: #fafcff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  color: var(--cib-muted);
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 1rem;
 }
