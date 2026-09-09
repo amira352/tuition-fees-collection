@@ -209,7 +209,9 @@ const runPayment = async (
       }
     }
 
-    await markPaymentFailed(paymentId);
+    const where = declined.tender.account_ref || declined.tender.method;
+
+    await markPaymentFailed(paymentId, `Declined on ${where}: ${declined.reason}`);
 
     const error = new Error(
       `Payment declined on account ${declined.tender.account_ref}: ${declined.reason}`
@@ -318,6 +320,6 @@ export const confirmExternalTransfer = async ({
     return findPaymentById(paymentId);
   }
 
-  await markPaymentFailed(paymentId);
+  await markPaymentFailed(paymentId, "The external transfer did not settle");
   return findPaymentById(paymentId);
 };
