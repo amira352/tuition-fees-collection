@@ -1,6 +1,10 @@
 -- Run this before every run of test-payments.sh.
 -- Wipes the test parent's payments and puts the three test fees back to unpaid.
 
+delete from payment_idempotency
+ where payment_id in (select id from payments
+                       where parent_id = '11111111-1111-1111-1111-111111111111');
+
 delete from payment_tenders
  where payment_id in (select id from payments
                        where parent_id = '11111111-1111-1111-1111-111111111111');
