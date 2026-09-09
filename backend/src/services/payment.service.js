@@ -12,11 +12,28 @@ import {
   findPaymentById
 } from "../repositories/payment.repository.js";
 
+import {
+  claimKey,
+  findKey,
+  completeKey,
+  releaseKey
+} from "../repositories/idempotency.repository.js";
+
+import { fingerprintRequest } from "../utils/fingerprint.js";
+
 const badRequest = (message, field) => {
   const error = new Error(message);
   error.statusCode = 400;
   error.code = "VALIDATION_ERROR";
   error.field = field || null;
+  return error;
+};
+
+const conflict = (message) => {
+  const error = new Error(message);
+  error.statusCode = 409;
+  error.code = "IDEMPOTENCY_CONFLICT";
+  error.field = null;
   return error;
 };
 
@@ -59,12 +76,14 @@ export const validateShape = ({ parentId, items, tenders }) => {
       throw badRequest(`Account ${i + 1} is missing account_ref`, "tenders");
     }
 
-    // NOTE: this validates the SHAPE only — whether payment_tenders in the
-    // database can actually store a `card` object at all is BE-2's open
-    // question (see BE-3-NOTES.md). Until that's answered, a card tender
-    // will pass this check but likely fail at createPendingPayment's RPC call.
+    // Card details are read from the request and handed straight to the bank.
+    // They are never written to payment_tenders - storing a CVV is forbidden
+    // under PCI DSS, and a PAN needs the whole system to be PCI compliant.
+    // What gets stored is what comes back: the masked number and the bank's
+    // own payment id.
     if (tender.method === "card") {
-      if (!tender.card || !tender.card.number || !tender.card.expiry_month || !tender.card.expiry_year || !tender.card.cvv) {
+      if (!tender.card || !tender.card.number || !tender.card.expiry_month ||
+          !tender.card.expiry_year || !tender.card.cvv) {
         throw badRequest(`Account ${i + 1} is missing full card details`, "tenders");
       }
     }
@@ -75,26 +94,39 @@ export const validateShape = ({ parentId, items, tenders }) => {
   });
 };
 
+// What the idempotency fingerprint is taken over. Deliberately not the raw
+// request: a card number never goes into a hash. The last four digits are
+// enough to tell two different cards apart, which is all the fingerprint
+// needs to do.
+const fingerprintInput = ({ parentId, items, tenders, paymentType }) => ({
+  parentId,
+  paymentType,
+  items,
+  tenders: tenders.map((t) => ({
+    method: t.method,
+    account_ref: t.account_ref || null,
+    amount: t.amount,
+    card_last4: t.card && t.card.number
+      ? String(t.card.number).replace(/\D/g, "").slice(-4)
+      : null
+  }))
+});
+
 /**
- * Takes a payment.
+ * Records the payment, asks the bank for the money, then applies it to the
+ * fees. The bank call sits in the middle on purpose - we never reduce a
+ * balance before the money is actually authorised.
  *
- * Three steps: record it as pending, ask the bank for the money, then
- * apply it to the fees. The bank call sits in the middle on purpose - we
- * never reduce a balance before the money is actually authorised.
- *
- * BE-3 item 3: a timeout is never a success. If the bank client throws with
- * .outcomeUnknown = true, we do NOT mark the payment failed and do NOT
- * reverse anything already approved — we genuinely don't know if this leg
- * went through. The payment and this tender are left exactly as
- * createPendingPayment set them (pending), and the caller gets a distinct
- * error telling them not to retry automatically.
+ * A timeout is never a success. If the bank client throws with
+ * .outcomeUnknown = true we do NOT mark the payment failed and do NOT
+ * reverse anything already approved - we genuinely do not know whether that
+ * leg went through. The payment and its tenders are left pending and the
+ * caller gets a distinct error telling them not to retry automatically.
  */
-export const createPayment = async (
-  { parentId, items, tenders, paymentType = "full" },
+const runPayment = async (
+  { parentId, items, tenders, paymentType },
   employeeId
 ) => {
-  validateShape({ parentId, items, tenders });
-
   const paymentId = await createPendingPayment({
     parentId,
     employeeId,
@@ -109,40 +141,42 @@ export const createPayment = async (
   let declined = null;
   let outcomeUnknown = false;
 
-  for (const tender of storedTenders) {
+  for (const stored of storedTenders) {
     // cash is handed over at the counter, there is nothing to authorise
-    if (tender.method === "cash") {
-      approved.push({ tender_id: tender.id, provider_ref: null });
+    if (stored.method === "cash") {
+      approved.push({ tender_id: stored.id, provider_ref: null });
       continue;
     }
 
+    // The card itself never came back from the database - it is not stored
+    // there. Match the saved tender to the one in the request by amount and
+    // position so we can hand the bank the details the caller sent.
+    const fromRequest =
+      tenders.find(
+        (t) => t.method === stored.method && Number(t.amount) === Number(stored.amount)
+      ) || {};
+
     try {
-      // Route by tender method — this branch was missing before: card
-      // tenders were silently going through the simulated account path,
-      // never through the real bank.client.js authoriseCard(), even once
-      // the tender shape supports a card. That's fixed here, but it's
-      // still WAITING on the shape itself supporting a `card` object
-      // (BE-2's item) — tender.card is undefined until that lands.
       const result =
-        tender.method === "card"
+        stored.method === "card"
           ? await authoriseCard({
-              card: tender.card,
-              amount: tender.amount,
-              orderReference: `${paymentId}-${tender.id}`,
-              nationalId: tender.national_id,
-              mobile: tender.mobile
+              card: fromRequest.card,
+              amount: stored.amount,
+              orderReference: `${paymentId}-${stored.id}`,
+              nationalId: fromRequest.national_id,
+              mobile: fromRequest.mobile
             })
           : await authoriseFromAccount({
-              accountRef: tender.account_ref,
-              amount: tender.amount
+              accountRef: stored.account_ref,
+              amount: stored.amount
             });
 
       if (!result.approved) {
-        declined = { tender, reason: result.reason };
+        declined = { tender: stored, reason: result.reason };
         break;
       }
 
-      approved.push({ tender_id: tender.id, provider_ref: result.providerRef });
+      approved.push({ tender_id: stored.id, provider_ref: result.providerRef });
     } catch (err) {
       if (err.outcomeUnknown) {
         outcomeUnknown = true;
@@ -153,13 +187,13 @@ export const createPayment = async (
   }
 
   if (outcomeUnknown) {
-    // Leave everything as pending — do not reverse, do not fail, do not
-    // retry automatically. This is exactly the scenario item 3 exists for.
+    // Leave everything pending - do not reverse, do not fail, do not retry.
     const error = new Error(
-      "The bank did not confirm or deny this charge. This payment remains pending manual reconciliation — do not retry automatically."
+      "The bank did not confirm or deny this charge. This payment remains pending manual reconciliation - do not retry automatically."
     );
     error.statusCode = 502;
     error.code = "PAYMENT_OUTCOME_UNKNOWN";
+    error.field = null;
     error.details = { payment_id: paymentId };
     throw error;
   }
@@ -180,6 +214,7 @@ export const createPayment = async (
     );
     error.statusCode = 402;
     error.code = "CARD_DECLINED";
+    error.field = null;
     throw error;
   }
 
@@ -189,20 +224,85 @@ export const createPayment = async (
 };
 
 /**
- * BE-3 item 4: the ONE function BE-2 (or a webhook, or a polling job) calls
- * once an external bank transfer's outcome is known. Reuses the existing
- * settlePayment RPC — an async transfer landing is treated the same as a
- * card capturing, at the data layer.
+ * Takes a payment.
  *
- * NOTE for BE-2: markPaymentFailed currently fails the WHOLE payment, not
- * just this one tender. For a payment that's only ONE leg of several,
- * that's probably too broad — this is your ticket item 5's territory
- * (per-tender status, partial settlement rules). Flagging rather than
- * guessing at a redesign of your repository function.
+ * If the caller sends an Idempotency-Key we make sure the same request can
+ * never charge twice - a slow response and an impatient second click is the
+ * usual way that happens.
  */
-export const confirmExternalTransfer = async ({ paymentId, tenderId, providerRef, outcome }) => {
+export const createPayment = async (
+  { parentId, items, tenders, paymentType = "full", idempotencyKey },
+  employeeId
+) => {
+  validateShape({ parentId, items, tenders });
+
+  const request = { parentId, items, tenders, paymentType };
+
+  if (!idempotencyKey) {
+    return runPayment(request, employeeId);
+  }
+
+  const fingerprint = fingerprintRequest(fingerprintInput(request));
+
+  // claim the key before doing any work. if two requests arrive together
+  // only one can win the insert, and the loser reads back the winner's result
+  const claimed = await claimKey(idempotencyKey, fingerprint);
+
+  if (!claimed) {
+    const existing = await findKey(idempotencyKey);
+
+    if (!existing) {
+      throw conflict("That payment is still being processed. Try again shortly");
+    }
+
+    if (existing.request_fingerprint !== fingerprint) {
+      throw conflict("This key has already been used for a different payment");
+    }
+
+    if (existing.status === "completed") {
+      return findPaymentById(existing.payment_id);
+    }
+
+    throw conflict("That payment is still being processed. Try again shortly");
+  }
+
+  try {
+    const payment = await runPayment(request, employeeId);
+    await completeKey(idempotencyKey, payment.id);
+    return payment;
+  } catch (error) {
+    // A declined card should not burn the key - the agent needs to be able
+    // to retry with it. But an UNKNOWN outcome must keep the key held:
+    // the money may already have left the account, and letting the same key
+    // start a second payment is exactly the double charge we are here to
+    // stop. Manual reconciliation clears it, not a retry.
+    if (error.code !== "PAYMENT_OUTCOME_UNKNOWN") {
+      await releaseKey(idempotencyKey);
+    }
+
+    throw error;
+  }
+};
+
+/**
+ * Called once an external bank transfer's outcome is known - by a webhook,
+ * or by a polling job. Reuses settlePayment: at the data layer, a transfer
+ * landing is the same thing as a card capturing.
+ *
+ * Note: markPaymentFailed fails the WHOLE payment, not just this tender.
+ * For a payment made of several legs that is too broad. Left as is rather
+ * than redesigned in a merge - see the open question in BE-3-NOTES.md.
+ */
+export const confirmExternalTransfer = async ({
+  paymentId,
+  tenderId,
+  providerRef,
+  outcome
+}) => {
   if (outcome === "SETTLED") {
-    await settlePayment(paymentId, [{ tender_id: tenderId, provider_ref: providerRef }]);
+    await settlePayment(paymentId, [
+      { tender_id: tenderId, provider_ref: providerRef }
+    ]);
     return findPaymentById(paymentId);
   }
 
