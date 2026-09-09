@@ -26,8 +26,11 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await login(email, password);
-      navigate(redirectTo, { replace: true });
+      const result = await login(email, password);
+      // First-time accounts must set a password before they can go anywhere.
+      navigate(result.mustChangePassword ? "/set-password" : redirectTo, {
+        replace: true,
+      });
     } catch (err) {
       setError(
         err.status
