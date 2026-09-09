@@ -17,6 +17,7 @@ import InstitutionsManagement from "./pages/InstitutionsManagement";
 import BackOfficeManagement from "./pages/BackOfficeManagement";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
+import TransactionHistoryPage from "./pages/TransactionHistoryPage";
 
 const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
@@ -80,7 +81,7 @@ export default function App() {
           <Route path="/browse" element={<SearchPage />} />
           <Route path="/payment" element={<FeePaymentPage />} />
           <Route path="/receipt" element={<ReceiptPage />} />
-          <Route path="/history" element={<PlaceholderPage title="Transaction History" />} />
+          <Route path="/history" element={<TransactionHistoryPage />} />
           <Route path="/receipts" element={<ReceiptsPage />} />
 
           <Route
