@@ -1,6 +1,5 @@
 import crypto from "crypto";
-import { parse } from "csv-parse/sync";
-
+import XLSX from "xlsx";
 import { createNationalIdHmac } from "../utils/hmac.js";
 import { encryptNationalId } from "../utils/encryption.js";
 
@@ -37,23 +36,29 @@ const REQUIRED_COLUMNS = [
 ];
 
 
-const parseCsvFile = (fileBuffer) => {
+const parseXlsxFile = (fileBuffer) => {
   try {
-    const records = parse(
-      fileBuffer,
+    const workbook = XLSX.read(fileBuffer, {
+      type: "buffer"
+    });
+
+    const sheetName = workbook.SheetNames[0];
+
+    const worksheet = workbook.Sheets[sheetName];
+
+    const records = XLSX.utils.sheet_to_json(
+      worksheet,
       {
-        columns: true,
-        skip_empty_lines: true,
-        trim: true
+        defval: "",
+        raw: false
       }
     );
 
     return records;
 
   } catch (error) {
-    const err = new Error(
-      "Invalid CSV format"
-    );
+
+    const err = new Error("Invalid XLSX file");
 
     err.statusCode = 400;
 
@@ -249,7 +254,7 @@ export const uploadInstitutionFeesCsv = async ({
   }
 
   const records =
-    parseCsvFile(file.buffer);
+    parseXlsxFile(file.buffer);
 
   validateColumns(records);
 

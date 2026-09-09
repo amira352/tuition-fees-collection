@@ -2,27 +2,22 @@ import multer from "multer";
 
 const storage = multer.memoryStorage();
 
-export const uploadCsv = multer({
+export const uploadXlsx = multer({
   storage,
 
-  limits: {
-    fileSize: 5 * 1024 * 1024
-  },
-
   fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ];
 
-    const isCsv =
-      file.mimetype === "text/csv" ||
-      file.originalname
-        .toLowerCase()
-        .endsWith(".csv");
-
-    if (!isCsv) {
-      return cb(
-        new Error("Only CSV files are allowed")
-      );
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return cb(new Error("Only XLSX files are allowed"));
     }
 
     cb(null, true);
+  },
+
+  limits: {
+    fileSize: 5 * 1024 * 1024
   }
 });

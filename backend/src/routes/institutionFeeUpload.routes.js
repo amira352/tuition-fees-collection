@@ -18,7 +18,7 @@ import {
 } from "../middleware/institutionAccess.middleware.js";
 
 import {
-  uploadCsv
+  uploadXlsx,
 } from "../middleware/upload.middleware.js";
 
 
@@ -34,8 +34,8 @@ router.post(
 
   authorizeInstitutionAccess,
 
-  uploadCsv.single("file"),
-
+  uploadXlsx.single("file"),
+  
   uploadFeesCsv
 );
 
