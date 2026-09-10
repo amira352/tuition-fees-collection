@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { apiPost } from "../lib/api";
-import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { apiPost } from "../lib/api";
 import {
   BuildingIcon,
   MailIcon,
