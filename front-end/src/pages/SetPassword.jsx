@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import AuthShell from "../components/AuthShell";
 import { LockIcon } from "../components/Icons";
-import { changePassword, mustChangePassword } from "../lib/auth";
+import { changePassword, logout, mustChangePassword } from "../lib/auth";
 import "./SetPassword.css";
 
 const RULES = [
@@ -47,20 +47,13 @@ export default function SetPassword() {
     }
 
     setLoading(true);
-    try {
-      await changePassword(current, next);
-      navigate("/", { replace: true });
-    } catch (err) {
-      setError(
-        err.status === 401
-          ? "The temporary password is incorrect."
-          : err.status
-            ? err.message
-            : "We couldn't reach the server. Please try again.",
-      );
-    } finally {
-      setLoading(false);
-    }
+    await changePassword(current, next);
+    navigate("/", { replace: true });
+  }
+
+  function handleSignInAgain() {
+    logout();
+    navigate("/login", { replace: true });
   }
 
   return (
@@ -137,6 +130,15 @@ export default function SetPassword() {
         <button type="submit" className="btn" disabled={loading || !valid}>
           {loading && <span className="spinner" aria-hidden="true" />}
           {loading ? "Saving…" : "Set password & continue"}
+        </button>
+
+        <button
+          type="button"
+          className="link-btn"
+          onClick={handleSignInAgain}
+          disabled={loading}
+        >
+          Not you? Sign in again
         </button>
       </form>
     </AuthShell>
