@@ -1,15 +1,29 @@
+:root {
+  --cib-navy: #002d62;
+  --cib-navy-700: #083c79;
+  --cib-orange: #ff6f00;
+  --cib-orange-hover: #e65100;
+  --cib-blue: #0072ce;
+  --line: #e2e8f0;
+  --muted: #64748b;
+  --ink: #1e293b;
+  --field-bg: #f8fafc;
+}
+
 .page {
   padding: 2rem 2.25rem;
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--ink);
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-title {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.85rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--navy-900);
+  color: var(--cib-navy);
 }
 
 .page-subtitle {
@@ -19,16 +33,16 @@
   flex-wrap: wrap;
   margin: 0.4rem 0 1.75rem;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
 }
 
 .role-badge {
-  padding: 0.2rem 0.6rem;
+  padding: 0.25rem 0.65rem;
   border-radius: 999px;
-  background: #e7eefb;
-  color: var(--accent-dark);
+  background: #e0f2fe;
+  color: var(--cib-navy);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: capitalize;
 }
 
@@ -36,7 +50,7 @@
   padding: 2.5rem 1.5rem;
   background: #fff;
   border: 1px dashed var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--muted);
   text-align: center;
   font-size: 0.9rem;
@@ -45,42 +59,51 @@
 .card {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 1.5rem 1.65rem;
-  margin-bottom: 1.25rem;
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 24px rgba(0, 45, 98, 0.06);
 }
 
+/* Primary CIB Orange Button */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.7rem 1.1rem;
+  padding: 0.9rem 2rem;
   border: none;
-  border-radius: 9px;
-  background: var(--navy-700);
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--cib-orange) 0%, #f37021 100%);
   color: #fff;
-  font-size: 0.9rem;
-  font-weight: 650;
+  font-size: 0.95rem;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 111, 0, 0.35);
+  transition: all 0.2s ease;
 }
 
 .btn:hover:not(:disabled) {
-  background: var(--accent-dark);
+  background: var(--cib-orange-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(255, 111, 0, 0.45);
 }
 
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .btn-secondary {
   background: #fff;
-  color: var(--navy-700);
-  border: 1px solid var(--line);
+  color: var(--cib-navy);
+  border: 1.5px solid var(--line);
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--field-bg);
+  border-color: var(--cib-navy);
 }

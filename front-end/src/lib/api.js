@@ -25,6 +25,7 @@ async function request(path, options = {}) {
   if (!res.ok) {
     const error = new Error(data?.message || "Request failed. Please try again.");
     error.status = res.status;
+    error.details = data?.details || null; // <--- Attach details here
     throw error;
   }
   return data;
@@ -34,3 +35,4 @@ export const apiGet = (path) => request(path);
 export const apiPost = (path, body) =>
   request(path, { method: "POST", body: JSON.stringify(body) });
 export const apiDelete = (path) => request(path, { method: "DELETE" });
+  request(path, { method: "POST", body: JSON.stringify(body) });
