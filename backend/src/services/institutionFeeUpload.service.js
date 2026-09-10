@@ -67,6 +67,13 @@ const parseXlsxFile = (fileBuffer) => {
 };
 
 
+const isCompletelyEmptyRow = (row) => {
+  return Object.values(row).every(
+    value => String(value ?? "").trim() === ""
+  );
+};
+
+
 const validateColumns = (records) => {
 
   if (!records.length) {
@@ -273,6 +280,11 @@ export const uploadInstitutionFeesCsv = async ({
 
     const rowNumber =
       index + 2;
+
+    // Skip completely empty rows
+    if (isCompletelyEmptyRow(row)) {
+      continue;
+    }
 
     const validation =
       validateRow(
