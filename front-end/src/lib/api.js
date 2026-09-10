@@ -33,3 +33,4 @@ async function request(path, options = {}) {
 export const apiGet = (path) => request(path);
 export const apiPost = (path, body) =>
   request(path, { method: "POST", body: JSON.stringify(body) });
+export const apiDelete = (path) => request(path, { method: "DELETE" });

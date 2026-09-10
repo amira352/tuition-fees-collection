@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet } from "../lib/api";
+import { apiGet, apiDelete } from "../lib/api";
 import ManageDetailsModal from "../components/ManageDetailsModal";
+import ConfirmModal from "../components/ConfirmModal";
 import "./shared.css";
 import "../Styles/AdminManagement.css";
 
@@ -21,6 +22,9 @@ export default function InstitutionsManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +44,23 @@ export default function InstitutionsManagement() {
       cancelled = true;
     };
   }, []);
+
+  const handleDelete = async () => {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      await apiDelete(`/admin/institutions/${deleting.id}`);
+      setInstitutions((prev) =>
+        prev.map((i) => (i.id === deleting.id ? { ...i, is_active: false } : i))
+      );
+      setDeleting(null);
+    } catch (err) {
+      setDeleteError(err.message || "Couldn't delete this institution.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   const activeCount = institutions.filter((i) => i.is_active).length;
   const pendingOnboardingCount = institutions.filter((i) => i.must_change_password).length;
@@ -108,6 +129,20 @@ export default function InstitutionsManagement() {
                       >
                         Manage
                       </button>
+                      {inst.is_active ? (
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          onClick={() => {
+                            setDeleteError("");
+                            setDeleting(inst);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      ) : (
+                        <span className="status-inactive">Inactive</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -131,6 +166,18 @@ export default function InstitutionsManagement() {
             },
             { label: "Registered", value: formatDate(selected.created_at) },
           ]}
+        />
+      )}
+
+      {deleting && (
+        <ConfirmModal
+          title="Delete institution"
+          message={`This removes "${deleting.name}" from the active network. Its records stay in the database, but it will no longer be able to log in.`}
+          confirmLabel="Delete"
+          busy={deleteBusy}
+          error={deleteError}
+          onCancel={() => setDeleting(null)}
+          onConfirm={handleDelete}
         />
       )}
     </div>
