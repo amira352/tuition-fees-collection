@@ -1,138 +1,301 @@
-.search-card {
-  padding: 1.25rem 1.65rem;
+/* ==========================================================================
+   CIB BRAND THEME TOKENS
+   ========================================================================== */
+:root {
+  --cib-navy: #002d62;
+  --cib-navy-light: #083c79;
+  --cib-orange: #ff6f00;
+  --cib-orange-hover: #e65100;
+  --cib-blue: #0072ce;
+  --cib-surface: #ffffff;
+  --cib-border: #e2e8f0;
+  --cib-text: #1e293b;
+  --cib-muted: #64748b;
+  --cib-shadow: 0 8px 24px rgba(0, 45, 98, 0.07);
 }
 
-.search-row {
-  display: flex;
-  gap: 0.9rem;
-  align-items: flex-end;
-  flex-wrap: wrap;
+/* Page Header */
+.page-title {
+  color: var(--cib-navy);
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
 }
 
-.search-field {
-  flex: 1;
-  min-width: 12rem;
-}
-
-.search-row .btn {
-  flex-shrink: 0;
+.page-subtitle {
+  color: var(--cib-muted);
+  font-size: 0.95rem;
   margin-top: 0;
-  width: auto;
-  min-width: 6.5rem;
+  margin-bottom: 1.75rem;
+}
+
+/* Card Styling with top accent line */
+.card {
+  background: var(--cib-surface);
+  border-radius: 16px;
+  border: 1px solid var(--cib-border);
+  box-shadow: var(--cib-shadow);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.75rem;
+}
+
+.search-card {
+  padding: 1.75rem 2rem;
+  border-top: 4px solid var(--cib-orange);
+}
+
+/* Input Fields & Labels */
+.field-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cib-navy);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.6rem;
+}
+
+.search-input-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.input-with-icon svg.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: var(--cib-blue);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.search-input-group .field-input {
+  width: 100%;
+  height: 50px;
+  padding-left: 48px !important;
+  padding-right: 16px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--cib-text);
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fbfcfe;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.search-input-group .field-input:focus {
+  outline: none;
+  border-color: var(--cib-blue);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 114, 206, 0.12);
+}
+
+.field-hint {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--cib-muted);
+  margin-top: 0.5rem;
+}
+
+/* Primary CIB Search Button */
+.btn-search {
+  height: 50px;
+  padding: 0 1.75rem;
+  background: linear-gradient(135deg, var(--cib-navy) 0%, var(--cib-navy-light) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 45, 98, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.btn-search:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 45, 98, 0.35);
+  background: linear-gradient(135deg, #001f44 0%, var(--cib-navy) 100%);
+}
+
+.btn-search:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
   box-shadow: none;
 }
 
-.field-label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #2f3a49;
-  margin-bottom: 0.4rem;
+.btn-search svg.btn-icon {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
 }
 
-.field-input {
-  width: 100%;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font-size: 0.88rem;
-  font-family: inherit;
-  background: var(--field-bg);
-}
-
-.field-input:focus {
-  outline: none;
-  border-color: var(--navy-700);
-  background: #fff;
-}
-
+/* ==========================================================================
+   RESULTS & INVOICE TABLE
+   ========================================================================== */
 .table-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  padding: 1.4rem 1.75rem;
+  background: #f8fbff;
+  border-bottom: 1px solid var(--cib-border);
 }
 
 .table-header-row h3 {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--cib-navy);
+}
+
+.parent-name {
+  color: var(--cib-orange);
   font-weight: 700;
 }
 
 .result-count {
   font-size: 0.8rem;
-  color: var(--muted);
+  font-weight: 600;
+  background: #e0f2fe;
+  color: var(--cib-navy);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
 }
 
 thead th {
   text-align: left;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-  background: #f7f7f8;
-  padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid var(--line);
-  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--cib-muted);
+  background: #f8fafc;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1.5px solid var(--cib-border);
+  font-weight: 700;
 }
 
 tbody td {
-  padding: 0.75rem;
-  border-bottom: 1px solid #f0f1f3;
-}
-
-tbody tr:last-child td {
-  border-bottom: none;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9rem;
+  color: var(--cib-text);
+  vertical-align: middle;
 }
 
 tbody tr:hover {
-  background: #fafbfc;
+  background: #fbfdff;
 }
 
+/* Custom Checkbox */
+tbody input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--cib-orange);
+  cursor: pointer;
+}
+
+/* "Pay now >" Button */
 .pill-pay {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.25rem 0.65rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: var(--success-bg);
-  color: var(--success-ink);
-  border: none;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: #e6f9f0;
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.2);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .pill-pay:hover {
-  filter: brightness(0.96);
+  background: #059669;
+  color: #fff;
+  transform: translateY(-1px);
 }
 
+/* Divider & Totals Row */
 .divider {
   border: none;
-  border-top: 1px solid var(--line);
-  margin: 1rem 0;
+  border-top: 1px solid var(--cib-border);
+  margin: 0;
 }
 
 .totals-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 1.5rem 1.75rem;
+  background: #fafcff;
 }
 
 .totals-label {
   font-size: 0.75rem;
-  color: var(--muted);
-  margin-bottom: 0.15rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--cib-muted);
+  margin-bottom: 0.25rem;
 }
 
 .totals-amount {
-  font-size: 1.2rem;
+  font-size: 1.6rem;
   font-weight: 800;
-  color: var(--ink);
+  color: var(--cib-navy);
+  letter-spacing: -0.02em;
+}
+
+/* Proceed to Payment CTA */
+.totals-row .btn {
+  background: linear-gradient(135deg, var(--cib-orange) 0%, #f37021 100%);
+  color: #fff;
+  border: none;
+  padding: 0.85rem 1.75rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 111, 0, 0.35);
+  transition: all 0.2s ease;
+}
+
+.totals-row .btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--cib-orange-hover);
+  box-shadow: 0 6px 18px rgba(255, 111, 0, 0.45);
+}
+
+.totals-row .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }

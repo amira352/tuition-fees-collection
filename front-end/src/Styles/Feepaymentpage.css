@@ -1,0 +1,296 @@
+/* ==========================================================================
+   CIB BRAND THEME & COLORS
+   ========================================================================== */
+:root {
+  --cib-navy: #002d62;
+  --cib-navy-dark: #001f44;
+  --cib-navy-light: #0d407f;
+  --cib-orange: #ff6f00;
+  --cib-orange-hover: #e65100;
+  --cib-orange-glow: rgba(255, 111, 0, 0.18);
+  --cib-blue: #0072ce;
+  --cib-border: #e2e8f0;
+  --cib-bg-subtle: #f8fbff;
+}
+
+/* Page Title */
+.page-title {
+  color: var(--cib-navy) !important;
+  font-size: 1.85rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.5rem;
+}
+
+/* Card Styling */
+.card {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--cib-border) !important;
+  box-shadow: 0 8px 24px rgba(0, 45, 98, 0.07) !important;
+  padding: 1.75rem 2rem !important;
+  margin-bottom: 1.75rem !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:first-of-type {
+  border-top: 5px solid var(--cib-navy) !important;
+}
+
+.card:last-of-type {
+  border-top: 5px solid var(--cib-orange) !important;
+}
+
+/* ==========================================================================
+   TABLE & TOTAL AMOUNT
+   ========================================================================== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  text-align: left;
+  font-size: 0.72rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b !important;
+  background: #f8fafc !important;
+  padding: 0.85rem 1.25rem !important;
+  border-bottom: 1.5px solid var(--cib-border) !important;
+  font-weight: 700 !important;
+}
+
+tbody td {
+  padding: 1rem 1.25rem !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  font-size: 0.92rem !important;
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+.divider {
+  border: none !important;
+  border-top: 1px dashed var(--cib-border) !important;
+  margin: 1.25rem 0 !important;
+}
+
+.totals-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding-top: 0.5rem;
+}
+
+.totals-label {
+  font-size: 0.8rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em;
+  color: #64748b !important;
+}
+
+.totals-amount {
+  font-size: 2.1rem !important;
+  font-weight: 800 !important;
+  color: var(--cib-navy) !important;
+  letter-spacing: -0.02em;
+}
+
+/* ==========================================================================
+   OPTION CARDS (AMOUNT & PAYMENT METHOD)
+   ========================================================================== */
+.section-title {
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cib-navy) !important;
+  margin: 0 0 1rem 0 !important;
+}
+
+.section-title-spaced {
+  margin-top: 2rem !important;
+}
+
+.option-grid {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.option-grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.option-card {
+  background: #fbfcfe !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 1.2rem 1.25rem !important;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.option-card:hover {
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 45, 98, 0.07);
+}
+
+/* Active option tile (CIB Navy with Orange highlight) */
+.option-card.option-card-selected {
+  background: #ffffff !important;
+  border-color: var(--cib-navy) !important;
+  box-shadow: 0 0 0 1.5px var(--cib-navy), 0 8px 20px rgba(0, 45, 98, 0.12) !important;
+}
+
+.option-title {
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  color: var(--cib-navy) !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Glowing orange indicator for selected option */
+.option-card.option-card-selected .option-title::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cib-orange);
+  box-shadow: 0 0 8px var(--cib-orange);
+}
+
+.option-desc {
+  font-size: 0.8rem !important;
+  color: #64748b !important;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   PARTIAL AMOUNT INPUT (PROMINENT HERO BOX)
+   ========================================================================== */
+.inline-field {
+  background: linear-gradient(180deg, #f8fbff 0%, #f0f6fd 100%) !important;
+  border: 2px solid #b8d4f6 !important;
+  border-radius: 14px !important;
+  padding: 1.5rem !important;
+  margin: 1.5rem 0 !important;
+  box-shadow: 0 4px 14px rgba(0, 45, 98, 0.05);
+}
+
+.inline-field .field-label {
+  display: block;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cib-navy) !important;
+  margin-bottom: 0.75rem !important;
+}
+
+/* The input itself: extra large, readable, and bold */
+.inline-field .field-input {
+  width: 100% !important;
+  max-width: 480px !important;
+  height: 56px !important;
+  padding: 0 1.25rem !important;
+  border: 2px solid #94bde9 !important;
+  border-radius: 10px !important;
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  color: var(--cib-navy) !important;
+  background: #ffffff !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
+}
+
+.inline-field .field-input:focus {
+  border-color: var(--cib-orange) !important;
+  box-shadow: 0 0 0 4px var(--cib-orange-glow) !important;
+}
+
+.field-error {
+  display: block;
+  font-size: 0.82rem;
+  color: #dc2626;
+  font-weight: 700;
+  margin-top: 0.6rem;
+}
+
+/* ==========================================================================
+   EPP TENOR CHIPS
+   ========================================================================== */
+.tenor-row {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  flex-wrap: wrap;
+}
+
+.tenor-chip {
+  background: #ffffff !important;
+  border: 2px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0.6rem 1.25rem !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  color: var(--cib-navy) !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tenor-chip.tenor-chip-selected {
+  background: var(--cib-navy) !important;
+  border-color: var(--cib-navy) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 45, 98, 0.25);
+}
+
+/* ==========================================================================
+   BOTTOM CTA CONFIRM BUTTON
+   ========================================================================== */
+.confirm-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--cib-border);
+}
+
+.confirm-row .btn {
+  background: linear-gradient(135deg, var(--cib-orange) 0%, #f37021 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 1rem 2.5rem !important;
+  border-radius: 12px !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(255, 111, 0, 0.35) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.confirm-row .btn:hover:not(:disabled) {
+  background: var(--cib-orange-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 111, 0, 0.45) !important;
+}
+
+.confirm-row .btn:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}

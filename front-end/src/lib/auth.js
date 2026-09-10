@@ -3,17 +3,20 @@ import { apiPost } from "./api";
 const KEYS = ["token", "role", "user", "mustChangePassword"];
 
 /*
- * BACKEND CONTRACT for the first-login password reset
- * ---------------------------------------------------
- * 1. POST /auth/loginUser response must flag first-time accounts, either
- *    top-level  ->  { ..., mustChangePassword: true }
- *    or on user ->  { user: { ..., mustChangePassword: true } }
- * 2. POST /auth/changePassword  (Authorization: Bearer <token>)
- *      body    { currentPassword, newPassword }
- *      success 200 (optionally a fresh { token }); server clears the flag
- *      failure 401 when currentPassword is wrong
- * Until the backend sends the flag, nothing changes — no reset is forced.
+ * First-login password reset — frontend-only for now.
+ *
+ * A first login is one where this browser has never recorded the account
+ * completing the reset (the per-user "pw_set_<id>" marker). On such a login we
+ * raise the "mustChangePassword" flag for the session; ProtectedRoute then holds
+ * the user on /set-password until they choose a password.
+ *
+ * When the backend adds a real flag, replace the marker check below with:
+ *   const mustChange = Boolean(data.mustChangePassword ?? data.user?.mustChangePassword);
+ * and have changePassword() POST to /auth/changePassword.
  */
+function pwSetKey(user) {
+  return `pw_set_${user?.id ?? user?.email ?? "unknown"}`;
+}
 
 export async function login(email, password) {
   const data = await apiPost("/auth/loginUser", {
@@ -25,22 +28,18 @@ export async function login(email, password) {
   localStorage.setItem("role", data.role);
   localStorage.setItem("user", JSON.stringify(data.user));
 
-  const mustChange = Boolean(
-    data.mustChangePassword ?? data.user?.mustChangePassword,
-  );
+  const mustChange = localStorage.getItem(pwSetKey(data.user)) !== "1";
   localStorage.setItem("mustChangePassword", mustChange ? "1" : "");
 
   return { ...data, mustChangePassword: mustChange };
 }
 
-export async function changePassword(currentPassword, newPassword) {
-  const data = await apiPost("/auth/changePassword", {
-    currentPassword,
-    newPassword,
-  });
-  if (data?.token) localStorage.setItem("token", data.token);
-  localStorage.setItem("mustChangePassword", "");
-  return data;
+export async function changePassword(_currentPassword, _newPassword) {
+  // TODO: when the backend exposes it, POST { currentPassword, newPassword } to
+  // /auth/changePassword and only run the lines below on a 200.
+  const user = getUser();
+  if (user) localStorage.setItem(pwSetKey(user), "1");
+  localStorage.removeItem("mustChangePassword");
 }
 
 export function logout() {
@@ -56,7 +55,7 @@ export function isAuthenticated() {
 }
 
 export function mustChangePassword() {
-  return localStorage.getItem("mustChangePassword") === "1";
+  return isAuthenticated() && localStorage.getItem("mustChangePassword") === "1";
 }
 
 export function getUser() {
