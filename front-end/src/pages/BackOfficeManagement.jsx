@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet } from "../lib/api";
+import { apiGet, apiDelete } from "../lib/api";
 import ManageDetailsModal from "../components/ManageDetailsModal";
+import ConfirmModal from "../components/ConfirmModal";
 import "./shared.css";
 import "../Styles/AdminManagement.css";
 
@@ -27,6 +28,9 @@ export default function BackOfficeManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
+  const [deactivating, setDeactivating] = useState(null);
+  const [deactivateError, setDeactivateError] = useState("");
+  const [deactivateBusy, setDeactivateBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +50,23 @@ export default function BackOfficeManagement() {
       cancelled = true;
     };
   }, []);
+
+  const handleDeactivate = async () => {
+    if (!deactivating) return;
+    setDeactivateBusy(true);
+    setDeactivateError("");
+    try {
+      await apiDelete(`/admin/bank-employees/${deactivating.id}`);
+      setEmployees((prev) =>
+        prev.map((e) => (e.id === deactivating.id ? { ...e, is_active: false } : e))
+      );
+      setDeactivating(null);
+    } catch (err) {
+      setDeactivateError(err.message || "Couldn't deactivate this employee.");
+    } finally {
+      setDeactivateBusy(false);
+    }
+  };
 
   const activeCount = employees.filter((e) => e.is_active).length;
   const adminCount = employees.filter((e) => e.role === "admin").length;
@@ -118,6 +139,20 @@ export default function BackOfficeManagement() {
                       >
                         Manage
                       </button>
+                      {emp.is_active ? (
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          onClick={() => {
+                            setDeactivateError("");
+                            setDeactivating(emp);
+                          }}
+                        >
+                          Deactivate
+                        </button>
+                      ) : (
+                        <span className="status-inactive">Inactive</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -143,6 +178,18 @@ export default function BackOfficeManagement() {
             },
             { label: "Added", value: formatDate(selected.created_at) },
           ]}
+        />
+      )}
+
+      {deactivating && (
+        <ConfirmModal
+          title="Deactivate employee"
+          message={`"${deactivating.full_name}" will lose access immediately. Their record stays in the database, just marked inactive.`}
+          confirmLabel="Deactivate"
+          busy={deactivateBusy}
+          error={deactivateError}
+          onCancel={() => setDeactivating(null)}
+          onConfirm={handleDeactivate}
         />
       )}
     </div>
