@@ -56,3 +56,26 @@ export const getParentChildrenWithFees = async (
 
   return data;
 };
+
+
+export const createParent = async ({
+  nationalIdHmac,
+  nationalIdEncrypted,
+  name
+}) => {
+  const { data, error } = await supabase
+    .from("parents")
+    .insert({
+      national_id_hmac: nationalIdHmac,
+      national_id_encrypted: nationalIdEncrypted,
+      name
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
