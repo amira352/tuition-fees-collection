@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { logout } from "../lib/auth";
 import "./Navbar.css";
 
 /**
@@ -5,12 +7,26 @@ import "./Navbar.css";
  * All navigation links live in <Sidebar /> instead.
  */
 export default function Navbar({ employeeName = "Bank Agent", onSignOut }) {
+  const navigate = useNavigate();
+
   const initials = employeeName
     .split(" ")
     .map((part) => part[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const handleSignOut = () => {
+    // 1. Call external callback if provided
+    if (typeof onSignOut === "function") {
+      onSignOut();
+      return;
+    }
+
+    // 2. Default: clear auth keys and redirect to login
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <header className="navbar">
@@ -22,7 +38,7 @@ export default function Navbar({ employeeName = "Bank Agent", onSignOut }) {
       <div className="navbar-user">
         <span>{employeeName}</span>
         <div className="navbar-avatar">{initials}</div>
-        <button type="button" className="navbar-signout" onClick={onSignOut}>
+        <button type="button" className="navbar-signout" onClick={handleSignOut}>
           Sign out
         </button>
       </div>

@@ -1,5 +1,12 @@
 import jwt from "jsonwebtoken";
 
+// BE-3 item 9 fix: this middleware runs on every protected route, so its
+// error responses ARE the most common error shape in the whole API — they
+// were bypassing the flat { code, message, field } contract entirely,
+// returning a bare { message } instead, since these respond directly
+// rather than throwing + calling next(err) through errorHandler.js.
+// Demonstrated and confirmed with a real executed test before fixing.
+
 /**
  * Verifies the JWT and puts the payload on req.user.
  *
@@ -16,7 +23,9 @@ export const authenticate = (options = {}) => {
 
     if (!header.startsWith("Bearer ")) {
       return res.status(401).json({
-        message: "Authorization token is required"
+        code: "MISSING_TOKEN",
+        message: "Authorization token is required",
+        field: null
       });
     }
 
@@ -28,7 +37,9 @@ export const authenticate = (options = {}) => {
       payload = jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
       return res.status(401).json({
-        message: "Invalid or expired token"
+        code: "INVALID_TOKEN",
+        message: "Invalid or expired token",
+        field: null
       });
     }
 
@@ -37,7 +48,9 @@ export const authenticate = (options = {}) => {
       allowPasswordChangeScope === false
     ) {
       return res.status(403).json({
-        message: "You must change your password before using this service"
+        code: "PASSWORD_CHANGE_REQUIRED",
+        message: "You must change your password before using this service",
+        field: null
       });
     }
 
@@ -55,13 +68,17 @@ export const requireRole = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
-        message: "Authorization token is required"
+        code: "MISSING_TOKEN",
+        message: "Authorization token is required",
+        field: null
       });
     }
 
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
-        message: "You do not have permission to perform this action"
+        code: "FORBIDDEN",
+        message: "You do not have permission to perform this action",
+        field: null
       });
     }
 

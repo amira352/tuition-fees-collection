@@ -17,6 +17,13 @@ import {
   generateTemporaryPassword
 } from "../utils/password.util.js";
 
+import {
+  findInstitutionByIdForAdmin,
+  deleteInstitutionById,
+  findBankEmployeeByIdForAdmin,
+  deactivateBankEmployeeById
+} from "../repositories/adminManagement.repository.js";
+
 const SALT_ROUNDS = 10;
 
 const badRequest = (message) => {
@@ -178,5 +185,81 @@ export const getAllUsers = async () => {
   return {
     bankEmployees,
     institutions
+  };
+};
+
+
+// DELETE INSTITUTION
+export const deleteInstitution = async (institutionId) => {
+
+  const institution =
+    await findInstitutionByIdForAdmin(institutionId);
+
+
+  if (!institution) {
+    const error = new Error("Institution not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+
+  await deleteInstitutionById(institutionId);
+
+
+  return {
+    message: "Institution deleted successfully",
+    deletedInstitution: institution
+  };
+};
+
+
+// DELETE BANK EMPLOYEE
+export const deleteBankEmployee = async (employeeId, adminId) => {
+
+  // Prevent admin from deactivating themselves
+  if (employeeId === adminId) {
+    const error = new Error(
+      "You cannot deactivate your own account"
+    );
+
+    error.statusCode = 400;
+    throw error;
+  }
+
+
+  const employee =
+    await findBankEmployeeByIdForAdmin(employeeId);
+
+
+  if (!employee) {
+    const error = new Error("Bank employee not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+
+  if (!employee.is_active) {
+    const error = new Error(
+      "Bank employee is already inactive"
+    );
+
+    error.statusCode = 400;
+    throw error;
+  }
+
+
+  await deactivateBankEmployeeById(employeeId);
+
+
+  return {
+    message: "Bank employee deactivated successfully",
+    employee: {
+      id: employee.id,
+      email: employee.email,
+      full_name: employee.full_name,
+      branch: employee.branch,
+      role: employee.role,
+      is_active: false
+    }
   };
 };
