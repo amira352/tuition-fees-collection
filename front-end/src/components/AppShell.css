@@ -15,6 +15,12 @@
   border-bottom: 1px solid var(--line);
 }
 
+.shell-left {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
 .shell-brand {
   display: inline-flex;
   align-items: center;
@@ -24,6 +30,32 @@
   height: 32px;
   width: auto;
   display: block;
+}
+
+.shell-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.shell-nav-link {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.shell-nav-link:hover {
+  color: var(--navy-900);
+  background: var(--field-bg);
+}
+
+.shell-nav-link.active {
+  color: var(--navy-700);
+  background: #e7eefb;
 }
 
 .shell-user {
@@ -62,9 +94,9 @@
 .shell-main {
   flex: 1;
   width: 100%;
-  max-width: 60rem;
+  max-width: 76rem;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 2.25rem 1.75rem;
 }
 
 @media (max-width: 520px) {
