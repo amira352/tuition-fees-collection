@@ -10,6 +10,7 @@ const NAV = [
   { to: "/institution/discounts", label: "Discounts", icon: "tag" },
   { to: "/institution/payments", label: "Payments", icon: "card" },
   { to: "/institution/epp-plans", label: "EPP Plans", icon: "plan" },
+  { to: "/institution/upload-dues", label: "Upload Dues", icon: "upload" },
   { to: "/institution/reports", label: "Reports", icon: "chart" },
   { to: "/institution/notifications", label: "Notifications", icon: "bell", badge: 3 },
   { to: "/institution/profile", label: "Institution Profile", icon: "building" },

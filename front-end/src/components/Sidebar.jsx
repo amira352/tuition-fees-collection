@@ -2,8 +2,6 @@ import "./Sidebar.css";
 import { NAV_ITEMS } from "./navItems";
 import { getUser } from "../lib/auth";
 
-export { NAV_ITEMS };
-
 /**
  * Left sidebar nav. `activePage` controls the highlighted item;
  * `onNavigate` fires with the clicked item's key.
