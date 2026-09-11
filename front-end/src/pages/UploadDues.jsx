@@ -1,7 +1,9 @@
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
-import { apiPost } from "../lib/api";
+import { getUser, getToken } from "../lib/auth";
 import "./UploadDues.css";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const REQUIRED_HEADERS = [
   "parent_national_id",
@@ -311,26 +313,46 @@ export default function UploadDues() {
   // 4. Import Dues Flow
   // ----------------------------------------------------
   async function handleImportDues() {
-    if (validRecords.length === 0) return;
+    if (!selectedFile) return;
+
+    const user = getUser();
+    const institutionId = user?.id;
+    if (!institutionId) {
+      setApiError("Could not determine institution ID. Please log out and log in again.");
+      return;
+    }
 
     setStatus("importing");
     setApiError("");
 
     try {
-      // Attempt backend API call
-      await apiPost("/institutions/upload-dues", { dues: validRecords });
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const token = getToken();
+      const res = await fetch(
+        `${API_URL}/institutions/${institutionId}/fees/upload`,
+        {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        }
+      );
+
+      let data = null;
+      try { data = await res.json(); } catch { /* no body */ }
+
+      if (!res.ok) {
+        const msg = data?.message || `Upload failed (${res.status}). Please try again.`;
+        const error = new Error(msg);
+        error.status = res.status;
+        throw error;
+      }
+
       setStatus("success");
     } catch (err) {
-      // If endpoint doesn't exist on backend yet, fulfill gracefully in frontend demo mode
-      if (err.status === 404 || err.message.includes("404")) {
-        console.warn("Backend upload endpoint not found. Fulfilling import in frontend state.");
-        setTimeout(() => {
-          setStatus("success");
-        }, 800);
-      } else {
-        setApiError(err.message || "Failed to import dues. Please try again.");
-        setStatus("validated");
-      }
+      setApiError(err.message || "Failed to import dues. Please try again.");
+      setStatus("validated");
     }
   }
 
