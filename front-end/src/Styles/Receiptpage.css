@@ -1,0 +1,141 @@
+.receipt-card {
+  max-width: 30rem;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 2rem 1.75rem;
+}
+
+.receipt-head {
+  text-align: center;
+}
+
+.receipt-kicker {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.receipt-amount {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--navy-900);
+  margin: 0.25rem 0 0.6rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-settled {
+  background: var(--success-bg);
+  color: var(--success-ink);
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 1rem 0;
+}
+
+.receipt-meta {
+  width: 100%;
+  font-size: 0.85rem;
+  border-collapse: collapse;
+}
+
+.receipt-meta td {
+  padding: 0.35rem 0;
+  color: var(--ink);
+}
+
+.receipt-meta td:first-child {
+  color: var(--muted);
+}
+
+.receipt-meta td:last-child {
+  text-align: right;
+  font-weight: 600;
+}
+
+.receipt-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.receipt-lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.receipt-lines td {
+  padding: 0.5rem 0;
+  vertical-align: top;
+}
+
+.receipt-lines td:last-child {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.line-student {
+  color: var(--ink);
+}
+
+.line-category {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 0.1rem;
+}
+
+.receipt-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.95rem;
+}
+
+.receipt-total-row span:first-child {
+  font-weight: 700;
+}
+
+.receipt-total-row span:last-child {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.receipt-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mono {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+@media print {
+  .navbar,
+  .sidebar,
+  .receipt-actions,
+  .page-subtitle {
+    display: none !important;
+  }
+  .receipt-card {
+    border: none;
+    box-shadow: none;
+    max-width: none;
+  }
+}

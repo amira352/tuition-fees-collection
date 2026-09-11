@@ -1,0 +1,294 @@
+openapi: 3.0.3
+info:
+  title: Tuition Fees API — Backend
+  version: 0.1.0
+  description: >
+    Reconstructed from the actual routes in this codebase, not written
+    ahead of time — every path here matches a real router file. One error
+    shape everywhere: { code, message, field }. One auth scheme: a Bearer
+    JWT, verified by authenticate()/authorizeRoles() (or requireRole(),
+    same pattern, different file — auth.middleware.js and
+    role.middleware.js currently duplicate this; worth consolidating to
+    one, flagged in BE-3-NOTES.md as a "one convention" cleanup, not fixed
+    here since it touches routes outside BE-3's scope).
+servers:
+  - url: http://localhost:4000/api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        code: { type: string, example: VALIDATION_ERROR }
+        message: { type: string }
+        field: { type: string, nullable: true }
+    LoginResponseBankEmployee:
+      type: object
+      properties:
+        message: { type: string }
+        token: { type: string }
+        role: { type: string, enum: [back_office, admin] }
+        mustChangePassword: { type: boolean }
+        user:
+          type: object
+          properties:
+            id: { type: string }
+            email: { type: string }
+            fullName: { type: string }
+            branch: { type: string, nullable: true }
+    LoginResponseInstitution:
+      type: object
+      properties:
+        message: { type: string }
+        token: { type: string }
+        role: { type: string, enum: [institution] }
+        mustChangePassword: { type: boolean }
+        user:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+            type: { type: string, enum: [SCHOOL, UNIVERSITY] }
+            email: { type: string }
+paths:
+  # --- Existing, not written by BE-3 — documented here because "one
+  # OpenAPI file" means all routes, not just the new ones ---
+  /auth/loginUser:
+    post:
+      summary: >
+        Log in as EITHER a bank employee or an institution — one endpoint
+        checks both tables (bank employees first, then institutions) and
+        returns whichever matched. The response shape genuinely differs
+        depending on which one matched (see the two response examples below)
+        — this isn't a simplification, it's how login() actually behaves.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: >
+            Login successful. mustChangePassword=true means the token has a
+            restricted "password_change" scope and is ONLY accepted by
+            POST /auth/change-password — every other route will reject it.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/LoginResponseBankEmployee"
+                  - $ref: "#/components/schemas/LoginResponseInstitution"
+              examples:
+                bankEmployee:
+                  summary: When email matches a bank_employees row
+                  value:
+                    message: "Login successful"
+                    token: "eyJhbGciOi..."
+                    role: "back_office"
+                    mustChangePassword: false
+                    user: { id: "uuid", email: "agent@example.com", fullName: "Jane Agent", branch: "Maadi" }
+                institution:
+                  summary: When email matches an institutions row instead
+                  value:
+                    message: "Login successful"
+                    token: "eyJhbGciOi..."
+                    role: "institution"
+                    mustChangePassword: false
+                    user: { id: "uuid", name: "Nile International School", type: "SCHOOL", email: "school@example.com" }
+        "400": { description: "Missing email or password — NOTE this one route returns only a plain message field, not the flat code/message/field shape, since loginUser's own guard clause predates item 9's error shape work" }
+        "401": { description: Invalid credentials — email not found in either table, or password didn't match }
+        "403": { description: Account exists but is_active is false }
+
+  /auth/change-password:
+    post:
+      summary: >
+        Change password for whichever account is logged in (bank employee
+        or institution — role is read from the token, not the body).
+        Reachable with a restricted password_change-scope token, so a
+        newly-created account can set its own password before doing
+        anything else on the API.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword, confirmPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string }
+                confirmPassword: { type: string, description: "Must exactly match newPassword" }
+      responses:
+        "200":
+          description: Password changed — response includes a fresh, FULL-scope token so the user doesn't need to log in again
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Password changed successfully" }
+                  token: { type: string }
+                  role: { type: string, enum: [back_office, admin, institution] }
+                  mustChangePassword: { type: boolean, example: false }
+        "400": { description: "newPassword doesn't match confirmPassword, or fails assertPasswordIsValid's rules, or equals currentPassword" }
+        "401": { description: currentPassword is wrong }
+        "404": { description: Account not found (shouldn't normally happen — token was valid but the row is gone) }
+
+  /payments:
+    post:
+      summary: Create a payment (one or more fee lines, one or more funding tenders)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [parentId, items, tenders]
+              properties:
+                parentId: { type: string }
+                paymentType: { type: string, enum: [full, partial], default: full }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties: { fee_id: { type: string }, amount: { type: number } }
+                tenders:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      method: { type: string, enum: [account, cash, card] }
+                      account_ref: { type: string, description: "Required when method is account" }
+                      card:
+                        type: object
+                        description: "Required when method is card"
+                        properties:
+                          number: { type: string }
+                          expiry_month: { type: integer }
+                          expiry_year: { type: integer }
+                          cvv: { type: string }
+                      amount: { type: number }
+      responses:
+        "201": { description: Payment completed }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } } }
+        "402": { description: Declined on one of the tenders }
+        "502":
+          description: PAYMENT_OUTCOME_UNKNOWN — the bank never confirmed or denied a card charge. Do not retry automatically.
+          content: { application/json: { schema: { $ref: "#/components/schemas/ErrorResponse" } } }
+
+  /payments/external-transfers/webhook:
+    post:
+      summary: >
+        Called by the other bank once an async transfer settles or fails —
+        NOT a logged-in-employee route. Auth is a shared secret
+        (X-Webhook-Secret header), not a Bearer token.
+      security: []
+      parameters:
+        - in: header
+          name: X-Webhook-Secret
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payment_id, tender_id, outcome]
+              properties:
+                payment_id: { type: string }
+                tender_id: { type: string }
+                provider_ref: { type: string }
+                outcome: { type: string, enum: [SETTLED, FAILED] }
+      responses:
+        "200": { description: Payment updated }
+        "401": { description: Missing or wrong webhook secret }
+
+  /bank/parents/search:
+    post:
+      summary: Search for a parent by national ID (existing route, not BE-3's — documented for completeness)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: OK }
+
+  /bank/customers/{nationalId}/accounts:
+    get:
+      summary: BE-3 item 1 — the customer's accounts/cards at the bank
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: nationalId
+          required: true
+          schema: { type: string, pattern: "^\\d{14}$" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts: { type: array, items: { type: object } }
+                  cards: { type: array, items: { type: object } }
+        "400": { description: Invalid or unverifiable national ID }
+
+  /epp/quotes:
+    get:
+      summary: BE-3 items 5/6/7 — pricing options for an amount
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: amount
+          required: true
+          schema: { type: number }
+      responses:
+        "200": { description: OK }
+
+  /epp:
+    post:
+      summary: Create an instalment plan from a settled, full, card payment
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentId, tenorMonths]
+              properties:
+                paymentId: { type: string }
+                tenorMonths: { type: integer, description: "Must be in EPP_ALLOWED_TENORS" }
+      responses:
+        "201": { description: Created }
+        "409": { description: PAYMENT_NOT_CONVERTIBLE or ALREADY_CONVERTED }
+        "422": { description: EPP_REQUIRES_CARD, EPP_REQUIRES_FULL_PAYMENT, or UNSUPPORTED_TENOR }
+
+  /institutions/{id}/reports/daily:
+    get:
+      summary: BE-3 item 8 — daily collection summary by fee type
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+        - in: query
+          name: format
+          schema: { type: string, enum: [json, csv] }
+      responses:
+        "200": { description: OK }

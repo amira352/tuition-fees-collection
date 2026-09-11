@@ -5,8 +5,10 @@
   background: var(--page-bg);
 }
 
-.shell-bar {
+.shell-body {
   display: flex;
+  flex: 1;
+  min-height: 0;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -93,14 +95,16 @@
 
 .shell-main {
   flex: 1;
+  min-width: 0;
+  overflow: auto;
   width: 100%;
   max-width: 76rem;
   margin: 0 auto;
   padding: 2.25rem 1.75rem;
 }
 
-@media (max-width: 520px) {
-  .shell-user-name {
-    display: none;
+@media (max-width: 768px) {
+  .shell-body {
+    flex-direction: column;
   }
 }

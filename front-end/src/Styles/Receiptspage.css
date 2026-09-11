@@ -1,0 +1,79 @@
+.search-card {
+  padding: 1.25rem 1.65rem;
+}
+
+.search-card .field-label {
+  margin-bottom: 0.5rem;
+}
+
+.search-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.search-row .field-input {
+  flex: 1;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+thead th {
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  background: #f7f7f8;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  font-weight: 600;
+}
+
+tbody td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: #fafbfc;
+}
+
+.mono {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.btn-link {
+  border: none;
+  background: none;
+  color: var(--navy-700);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.78rem;
+}
