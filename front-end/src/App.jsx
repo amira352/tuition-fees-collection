@@ -68,6 +68,7 @@ export default function App() {
             <Route path="discounts" element={<ComingSoon />} />
             <Route path="payments" element={<InstitutionPayments />} />
             <Route path="epp-plans" element={<ComingSoon />} />
+            <Route path="upload-dues" element={<UploadDues />} />
             <Route path="reports" element={<ComingSoon />} />
             <Route path="notifications" element={<ComingSoon />} />
             <Route path="profile" element={<ComingSoon />} />
