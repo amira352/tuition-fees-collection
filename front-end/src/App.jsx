@@ -23,6 +23,9 @@ import TransactionHistoryPage from "./pages/TransactionHistoryPage";
 const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
 );
+const InstitutionPayments = lazy(() =>
+  import("./pages/institution/InstitutionPayments"),
+);
 
 
 function Home() {
