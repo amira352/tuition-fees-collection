@@ -26,6 +26,9 @@ const InstitutionDashboard = lazy(() =>
 const InstitutionPayments = lazy(() =>
   import("./pages/institution/InstitutionPayments"),
 );
+const InstitutionEppPlans = lazy(() =>
+  import("./pages/institution/InstitutionEppPlans"),
+);
 
 
 function Home() {
@@ -70,7 +73,7 @@ export default function App() {
             <Route path="fees" element={<ComingSoon />} />
             <Route path="discounts" element={<ComingSoon />} />
             <Route path="payments" element={<InstitutionPayments />} />
-            <Route path="epp-plans" element={<ComingSoon />} />
+            <Route path="epp-plans" element={<InstitutionEppPlans />} />
             <Route path="reports" element={<ComingSoon />} />
             <Route path="notifications" element={<ComingSoon />} />
             <Route path="profile" element={<ComingSoon />} />

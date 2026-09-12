@@ -140,6 +140,8 @@ const PILL_LABEL = {
   warning: "Warning",
   info: "Info",
   neutral: "New",
+  active: "Active",
+  overdue: "Overdue",
 };
 
 export function StatusPill({ status }) {
