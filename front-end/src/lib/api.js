@@ -19,13 +19,12 @@ async function request(path, options = {}) {
   try {
     data = await res.json();
   } catch {
-    // response had no JSON body
   }
 
   if (!res.ok) {
     const error = new Error(data?.message || "Request failed. Please try again.");
     error.status = res.status;
-    error.details = data?.details || null; // <--- Attach details here
+    error.details = data?.details || null; 
     throw error;
   }
   return data;
