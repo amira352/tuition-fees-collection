@@ -22,6 +22,8 @@ import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import TransactionHistoryPage from "./pages/TransactionHistoryPage";
 import FeesManagement from "./pages/institution/FeesManagement";
+import ReportsPage from "./pages/institution/ReportsPage";
+import DiscountsPage from "./pages/institution/DiscountsPage";
 
 const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
@@ -68,11 +70,11 @@ export default function App() {
           >
             <Route index element={<InstitutionDashboard />} />
             <Route path="fees" element={<FeesManagement />} />
-            <Route path="discounts" element={<ComingSoon />} />
+            <Route path="discounts" element={<DiscountsPage />} />
             <Route path="payments" element={<InstitutionPayments />} />
             <Route path="epp-plans" element={<ComingSoon />} />
             <Route path="upload-dues" element={<UploadDues />} />
-            <Route path="reports" element={<ComingSoon />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="notifications" element={<ComingSoon />} />
             <Route path="profile" element={<ComingSoon />} />
           </Route>
