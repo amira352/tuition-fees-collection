@@ -8,6 +8,7 @@ import ComingSoon from "./components/ComingSoon";
 import Login from "./pages/Login";
 import SetPassword from "./pages/SetPassword";
 import Dashboard from "./pages/Dashboard";
+import UploadDues from "./pages/UploadDues";
 import SearchPage from "./pages/SearchPage";
 import FeePaymentPage from "./pages/FeePaymentPage";
 import ReceiptPage from "./pages/ReceiptPage";
@@ -32,6 +33,7 @@ function Home() {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
+
   return getUser()?.role === "institution" ? (
     <Navigate to="/institution" replace />
   ) : (
@@ -85,6 +87,7 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/upload-dues" element={<UploadDues />} />
             <Route path="/browse" element={<SearchPage />} />
             <Route path="/payment" element={<FeePaymentPage />} />
             <Route path="/receipt" element={<ReceiptPage />} />
@@ -99,6 +102,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/admin/institutions"
               element={
@@ -107,6 +111,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/admin/back-office"
               element={
