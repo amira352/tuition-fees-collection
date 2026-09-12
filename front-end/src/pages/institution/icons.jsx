@@ -49,6 +49,9 @@ export const Icon = {
   upload: () => (
     <svg {...S}><path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" /></svg>
   ),
+  plus: () => (
+    <svg {...S}><path d="M12 5v14M5 12h14" /></svg>
+  ),
   payment: () => (
     <svg {...S}><rect x="2.5" y="6" width="19" height="12" rx="2" /><path d="M2.5 10h19" /></svg>
   ),
