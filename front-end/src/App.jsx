@@ -19,6 +19,7 @@ import BackOfficeManagement from "./pages/BackOfficeManagement";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import TransactionHistoryPage from "./pages/TransactionHistoryPage";
+import FeesManagement from "./pages/institution/FeesManagement";
 
 const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
@@ -63,7 +64,7 @@ export default function App() {
             }
           >
             <Route index element={<InstitutionDashboard />} />
-            <Route path="fees" element={<ComingSoon />} />
+            <Route path="fees" element={<FeesManagement />} />
             <Route path="discounts" element={<ComingSoon />} />
             <Route path="payments" element={<ComingSoon />} />
             <Route path="epp-plans" element={<ComingSoon />} />
