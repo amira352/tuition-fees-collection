@@ -17,7 +17,6 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import Admin from "./pages/Admin";
 import InstitutionsManagement from "./pages/InstitutionsManagement";
 import BackOfficeManagement from "./pages/BackOfficeManagement";
-import InstitutionPayments from "./pages/institution/InstitutionPayments";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import TransactionHistoryPage from "./pages/TransactionHistoryPage";
@@ -25,6 +24,12 @@ import FeesManagement from "./pages/institution/FeesManagement";
 
 const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
+);
+const InstitutionPayments = lazy(() =>
+  import("./pages/institution/InstitutionPayments"),
+);
+const InstitutionEppPlans = lazy(() =>
+  import("./pages/institution/InstitutionEppPlans"),
 );
 
 
@@ -71,7 +76,7 @@ export default function App() {
             <Route path="fees" element={<FeesManagement />} />
             <Route path="discounts" element={<ComingSoon />} />
             <Route path="payments" element={<InstitutionPayments />} />
-            <Route path="epp-plans" element={<ComingSoon />} />
+            <Route path="epp-plans" element={<InstitutionEppPlans />} />
             <Route path="upload-dues" element={<UploadDues />} />
             <Route path="reports" element={<ComingSoon />} />
             <Route path="notifications" element={<ComingSoon />} />
