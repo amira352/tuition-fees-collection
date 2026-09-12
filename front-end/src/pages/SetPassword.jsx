@@ -5,13 +5,16 @@ import { LockIcon } from "../components/Icons";
 import { changePassword, logout, mustChangePassword } from "../lib/auth";
 import "./SetPassword.css";
 
+// Mirrors backend/src/utils/password.util.js's getPasswordProblems().
 const RULES = [
   { key: "length", label: "At least 8 characters", test: (p) => p.length >= 8 },
+  { key: "number", label: "Contains a number", test: (p) => /\d/.test(p) },
   {
-    key: "mix",
-    label: "Contains a letter and a number",
-    test: (p) => /[A-Za-z]/.test(p) && /\d/.test(p),
+    key: "special",
+    label: "Contains a special character",
+    test: (p) => /[!@#$%^&*()\-_=+[\]{};:'",.<>/?\\|`~]/.test(p),
   },
+  { key: "space", label: "No leading or trailing space", test: (p) => p.trim() === p && p.length > 0 },
 ];
 
 export default function SetPassword() {
@@ -47,8 +50,18 @@ export default function SetPassword() {
     }
 
     setLoading(true);
-    await changePassword(current, next);
-    navigate("/", { replace: true });
+    try {
+      await changePassword(current, next, confirm);
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(
+        err.status
+          ? err.message
+          : "We couldn't reach the server. Please check your connection and try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleSignInAgain() {
