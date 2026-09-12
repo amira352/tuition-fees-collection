@@ -134,6 +134,8 @@ export function RecentPayments({ rows }) {
 const PILL_LABEL = {
   paid: "Paid",
   pending: "Pending",
+  completed: "Completed",
+  failed: "Failed",
   success: "Success",
   warning: "Warning",
   info: "Info",
