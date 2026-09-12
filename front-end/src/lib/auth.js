@@ -2,22 +2,6 @@ import { apiPost } from "./api";
 
 const KEYS = ["token", "role", "user", "mustChangePassword"];
 
-/*
- * First-login password reset — frontend-only for now.
- *
- * A first login is one where this browser has never recorded the account
- * completing the reset (the per-user "pw_set_<id>" marker). On such a login we
- * raise the "mustChangePassword" flag for the session; ProtectedRoute then holds
- * the user on /set-password until they choose a password.
- *
- * When the backend adds a real flag, replace the marker check below with:
- *   const mustChange = Boolean(data.mustChangePassword ?? data.user?.mustChangePassword);
- * and have changePassword() POST to /auth/changePassword.
- */
-function pwSetKey(user) {
-  return `pw_set_${user?.id ?? user?.email ?? "unknown"}`;
-}
-
 export async function login(email, password) {
   const data = await apiPost("/auth/loginUser", {
     email: email.trim(),
@@ -27,19 +11,33 @@ export async function login(email, password) {
   localStorage.setItem("token", data.token);
   localStorage.setItem("role", data.role);
   localStorage.setItem("user", JSON.stringify(data.user));
+  localStorage.setItem("mustChangePassword", data.mustChangePassword ? "1" : "");
 
-  const mustChange = localStorage.getItem(pwSetKey(data.user)) !== "1";
-  localStorage.setItem("mustChangePassword", mustChange ? "1" : "");
-
-  return { ...data, mustChangePassword: mustChange };
+  return data;
 }
 
-export async function changePassword(_currentPassword, _newPassword) {
-  // TODO: when the backend exposes it, POST { currentPassword, newPassword } to
-  // /auth/changePassword and only run the lines below on a 200.
-  const user = getUser();
-  if (user) localStorage.setItem(pwSetKey(user), "1");
-  localStorage.removeItem("mustChangePassword");
+/**
+ * POST /auth/change-password. Used both for the forced first-login reset and
+ * for a normal voluntary password change later.
+ *
+ * The token this call is made with is scope-restricted ("password_change")
+ * when mustChangePassword was true — the backend rejects it on every other
+ * route. On success the backend issues a fresh, full-scope token, so we
+ * overwrite the stored one; without this the old restricted token would
+ * keep getting rejected everywhere else in the app.
+ */
+export async function changePassword(currentPassword, newPassword, confirmPassword) {
+  const data = await apiPost("/auth/change-password", {
+    currentPassword,
+    newPassword,
+    confirmPassword,
+  });
+
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("role", data.role);
+  localStorage.setItem("mustChangePassword", data.mustChangePassword ? "1" : "");
+
+  return data;
 }
 
 export function logout() {
