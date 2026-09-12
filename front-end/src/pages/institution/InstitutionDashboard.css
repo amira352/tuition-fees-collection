@@ -419,9 +419,11 @@
 }
 
 .pill--paid,
+.pill--completed,
 .pill--success { background: #e6f6ef; color: #1a7a53; }
 .pill--pending,
 .pill--warning { background: #fdf1e1; color: #b5771a; }
+.pill--failed { background: var(--danger-bg); color: var(--danger-ink); }
 .pill--info { background: #eaf1fb; color: #245fa9; }
 .pill--neutral { background: #eef1f6; color: #566173; }
 
