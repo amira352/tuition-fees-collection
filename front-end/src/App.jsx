@@ -18,7 +18,6 @@ import Admin from "./pages/Admin";
 import InstitutionsManagement from "./pages/InstitutionsManagement";
 import BackOfficeManagement from "./pages/BackOfficeManagement";
 import InstitutionPayments from "./pages/institution/InstitutionPayments";
-import UploadDues from "./pages/UploadDues";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import TransactionHistoryPage from "./pages/TransactionHistoryPage";
