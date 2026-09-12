@@ -61,4 +61,22 @@ export const Icon = {
   plan: () => (
     <svg {...S}><rect x="3.5" y="4.5" width="17" height="16" rx="2.5" /><path d="M3.5 9.5h17M8 2.5v4M16 2.5v4M9 14l2 2 4-4" /></svg>
   ),
+  search: () => (
+    <svg {...S}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+  ),
+  close: () => (
+    <svg {...S}><path d="M6 6l12 12M18 6 6 18" /></svg>
+  ),
+  chevronLeft: () => (
+    <svg {...S} width={16} height={16}><path d="m15 6-6 6 6 6" /></svg>
+  ),
+  chevronRight: () => (
+    <svg {...S} width={16} height={16}><path d="m9 6 6 6-6 6" /></svg>
+  ),
+  checkCircle: () => (
+    <svg {...S}><circle cx="12" cy="12" r="9" /><path d="m8.5 12.5 2.5 2.5 5-5" /></svg>
+  ),
+  dotCircle: () => (
+    <svg {...S}><circle cx="12" cy="12" r="9" /></svg>
+  ),
 };

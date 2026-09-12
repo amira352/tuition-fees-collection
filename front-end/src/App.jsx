@@ -24,6 +24,7 @@ const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
 );
 
+
 function Home() {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
@@ -65,7 +66,7 @@ export default function App() {
             <Route index element={<InstitutionDashboard />} />
             <Route path="fees" element={<ComingSoon />} />
             <Route path="discounts" element={<ComingSoon />} />
-            <Route path="payments" element={<ComingSoon />} />
+            <Route path="payments" element={<InstitutionPayments />} />
             <Route path="epp-plans" element={<ComingSoon />} />
             <Route path="reports" element={<ComingSoon />} />
             <Route path="notifications" element={<ComingSoon />} />
