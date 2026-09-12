@@ -21,6 +21,10 @@ import {
   uploadXlsx,
 } from "../middleware/upload.middleware.js";
 
+import {
+  getInstitutionFeesController
+} from "../controllers/institutionFees.controller.js";
+
 
 const router = express.Router();
 
@@ -50,6 +54,14 @@ router.get(
   authorizeInstitutionAccess,
 
   downloadUploadErrors
+);
+
+
+router.get(
+  "/:id/fees",
+  authenticate(),
+  authorizeRoles("institution"),
+  getInstitutionFeesController
 );
 
 
