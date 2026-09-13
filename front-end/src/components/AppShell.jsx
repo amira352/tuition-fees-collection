@@ -32,7 +32,11 @@ export default function AppShell() {
 
   return (
     <div className="shell">
-      <Navbar employeeName={employeeName} onSignOut={handleSignOut} />
+      <Navbar
+       employeeName={employeeName}
+       onSignOut={handleSignOut} 
+       onProfileClick={() => navigate("/profile")}
+       />
 
       <div className="shell-body">
         <Sidebar activePage={activePage} onNavigate={handleNavigate} />
