@@ -5,7 +5,7 @@ import { authenticate, requireRole } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-router.use(authenticate(), requireRole("back_office", "admin"));
+router.use(authenticate(), requireRole("back_office", "admin", "institution"));
 
 router.get("/", paymentHistory);
 
