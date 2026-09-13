@@ -1,4 +1,4 @@
-import { getInstitutionFees, createFeeForStudent }
+import { getInstitutionFees, createFeeForStudent, findFeeForInstitution, updateInstitutionFee }
   from "../repositories/fee.repository.js";
 
 import {
@@ -121,5 +121,138 @@ export const createInstitutionFee = async ({
     },
 
     fee
+  };
+};
+
+//edit fee
+export const editInstitutionFee = async ({
+  institutionId,
+  feeId,
+  feeType,
+  period,
+  amount,
+  currency
+}) => {
+
+  // 1. Validate input
+  if (!feeType || !feeType.trim()) {
+    throw badRequest("Fee type is required");
+  }
+
+  if (!period || !period.trim()) {
+    throw badRequest("Period is required");
+  }
+
+  if (
+    amount === undefined ||
+    amount === null ||
+    amount === ""
+  ) {
+    throw badRequest("Amount is required");
+  }
+
+  if (
+    Number.isNaN(Number(amount)) ||
+    Number(amount) <= 0
+  ) {
+    throw badRequest("Amount must be greater than zero");
+  }
+
+  if (!currency || !currency.trim()) {
+    throw badRequest("Currency is required");
+  }
+
+
+  // 2. Find the fee
+  const existingFee =
+    await findFeeForInstitution({
+      feeId,
+      institutionId
+    });
+
+
+  if (!existingFee) {
+    throw notFound(
+      "Fee not found for this institution"
+    );
+  }
+
+
+  // 3. Calculate the new outstanding amount
+  const oldAmount = Number(existingFee.amount);
+
+  const oldOutstanding =
+    Number(existingFee.outstanding_amount);
+
+  const newAmount = Number(amount);
+
+  /*
+   * Keep the amount already paid by the parent.
+   *
+   * Example:
+   *
+   * Original fee       = 1000
+   * Outstanding        = 600
+   * Already paid       = 400
+   *
+   * New fee amount      = 1200
+   * New outstanding     = 800
+   */
+
+  const amountAlreadyPaid =
+    oldAmount - oldOutstanding;
+
+
+  const newOutstandingAmount =
+    newAmount - amountAlreadyPaid;
+
+
+  if (newOutstandingAmount < 0) {
+    throw badRequest(
+      "The new amount cannot be less than the amount already paid"
+    );
+  }
+
+
+  // 4. Determine the new status
+  let newStatus = "unpaid";
+
+  if (newOutstandingAmount === 0) {
+    newStatus = "paid";
+  } else if (newOutstandingAmount < newAmount) {
+    newStatus = "partially_paid";
+  }
+
+
+  // -----------------------------------------
+  // 5. Update the fee
+  // -----------------------------------------
+
+  const updatedFee =
+    await updateInstitutionFee({
+      feeId,
+      feeType: feeType.trim(),
+      period: period.trim(),
+      amount: newAmount,
+      currency: currency.trim().toUpperCase(),
+      outstandingAmount: newOutstandingAmount,
+      status: newStatus
+    });
+
+
+  // -----------------------------------------
+  // 6. Return result
+  // -----------------------------------------
+
+  return {
+    message: "Fee updated successfully",
+
+    student: {
+      id: existingFee.children.id,
+      name: existingFee.children.name,
+      student_code: existingFee.children.student_code
+    },
+
+    fee: updatedFee
   };
 };
