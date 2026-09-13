@@ -92,7 +92,13 @@ export default function SearchPage() {
         const rows = flattenChildrenToInvoiceRows(data.children);
         setInvoices(rows);
         setSelectedIds(new Set(rows.map((r) => r.id)));
-        setParent(data.parent);
+
+        // Preserve cleanId on the parent object (both casings for safety)
+        setParent({
+          ...data.parent,
+          nationalId: cleanId,
+          national_id: cleanId,
+        });
       }
       setHasSearched(true);
     } catch (err) {

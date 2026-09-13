@@ -1,4 +1,7 @@
-import { useLocation, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useParams, useSearchParams, Link } from "react-router-dom";
+import { apiGet } from "../lib/api";
+import { getUser } from "../lib/auth";
 import "./shared.css";
 import "../Styles/ReceiptPage.css";
 
@@ -12,111 +15,271 @@ function maskNationalId(id) {
   return str.length > 4 ? `${str.slice(0, 7)}••••${str.slice(-2)}` : str;
 }
 
-// ---------------------------------------------------------------------------
-// PLACEHOLDER — used only if this page is opened without a receipt in router
-// state (e.g. a direct link/refresh). Once a real receipt-lookup endpoint
-// exists, this fallback can be dropped or swapped to a fetch-by-id.
-// ---------------------------------------------------------------------------
-const PLACEHOLDER_RECEIPT = {
-  receiptNumber: "RC-8842910",
-  nationalId: "29804151234567",
-  institution: "Cairo International School",
-  method: "card",
-  accountCurrency: "EGP",
-  amountPaid: 21900,
-  amountCurrency: "EGP",
-  processedBy: "Salma Sami (BO-2026-08421)",
-  processedAt: "2026-09-02T14:32:00Z",
-  invoices: [
-    { id: "inv-001", studentName: "Ahmed Mohamed Hassan", feeCategory: "Tuition Fees", amount: 8500, currency: "EGP" },
-    { id: "inv-002", studentName: "Ahmed Mohamed Hassan", feeCategory: "Bus Services", amount: 2450, currency: "EGP" },
-    { id: "inv-003", studentName: "Mariam Mohamed Hassan", feeCategory: "Tuition Fees", amount: 8500, currency: "EGP" },
-    { id: "inv-004", studentName: "Youssef Mohamed Hassan", feeCategory: "Bus Services", amount: 2450, currency: "EGP" },
-  ],
-};
-
 const METHOD_LABEL = {
-  card: "Credit / debit card",
-  cash: "Cash",
+  card: "Credit / Debit Card",
+  account: "Direct Account Debit",
+  cash: "Counter Cash Deposit",
 };
 
 export default function ReceiptPage() {
   const location = useLocation();
-  const receipt = location.state?.receipt ?? PLACEHOLDER_RECEIPT;
+  const params = useParams();
+  const [searchParams] = useSearchParams();
 
-  const {
-    receiptNumber,
-    nationalId,
-    institution,
-    method,
-    amountPaid,
-    amountCurrency,
-    processedBy,
-    processedAt,
-    invoices = [],
-  } = receipt;
+  // 1. Initialize from router state if redirected from FeePaymentPage
+  const stateReceipt = location.state?.receipt ?? null;
 
-  const processedDate = processedAt
-    ? new Date(processedAt).toLocaleString(undefined, {
+  const [receipt, setReceipt] = useState(stateReceipt);
+  const [isLoading, setIsLoading] = useState(!stateReceipt);
+  const [fetchError, setFetchError] = useState("");
+
+  const paymentId = searchParams.get("paymentId") || stateReceipt?.payment_id || stateReceipt?.paymentId;
+  const receiptNumberParam = params.receiptNumber || searchParams.get("number");
+
+  // 2. Fallback fetch if opened directly via link/refresh
+  useEffect(() => {
+    if (stateReceipt) {
+      setReceipt(stateReceipt);
+      setIsLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    async function fetchReceipt() {
+      setIsLoading(true);
+      setFetchError("");
+      try {
+        let res;
+        if (paymentId) {
+          // GET /api/receipts/payment/:paymentId
+          res = await apiGet(`/receipts/payment/${paymentId}`);
+        } else if (receiptNumberParam) {
+          // GET /api/receipts/:receiptNumber
+          res = await apiGet(`/receipts/${receiptNumberParam}`);
+        } else {
+          setIsLoading(false);
+          return;
+        }
+
+        if (isMounted) {
+          setReceipt(res.receipt);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setFetchError(err.message || "Failed to load the payment receipt.");
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    fetchReceipt();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [stateReceipt, paymentId, receiptNumberParam]);
+
+  if (isLoading) {
+    return (
+      <div className="page">
+        <div className="placeholder-card">Loading official receipt details…</div>
+      </div>
+    );
+  }
+
+  if (fetchError || !receipt) {
+    return (
+      <div className="page">
+        <h1 className="page-title">Receipt Not Found</h1>
+        <div className="placeholder-card">
+          {fetchError || "No receipt data found for this transaction."}{" "}
+          <Link to="/browse">Return to Fee Search</Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Normalize data between backend shape and router state
+  const receiptNumber = receipt.receipt_number || receipt.receiptNumber;
+  const totalAmount = receipt.total ?? receipt.amountPaid ?? 0;
+  const currency = receipt.currency || receipt.amountCurrency || "EGP";
+  const issuedDate = receipt.issued_at || receipt.paid_on || receipt.processedAt;
+  const payerName = receipt.payer || receipt.parentName;
+  const nationalId = receipt.nationalId || receipt.national_id;
+
+  // Tender line details
+  const primaryTender = Array.isArray(receipt.paid_from) && receipt.paid_from.length > 0
+    ? receipt.paid_from[0]
+    : null;
+
+  const method = primaryTender?.method || receipt.method || "card";
+  const accountRef = primaryTender?.account || receipt.accountId;
+  const bankRef = primaryTender?.bank_reference;
+
+  // Resolve issuing Back Office agent (prevents "null (Branch)" bug)
+  const loggedInUser = getUser?.() || {};
+  const rawIssuedName =
+    receipt.issued_by?.name ||
+    receipt.issued_by?.full_name ||
+    (typeof receipt.processedBy === "string" ? receipt.processedBy : null);
+
+  const employeeName =
+    (rawIssuedName && rawIssuedName !== "null" ? rawIssuedName : null) ||
+    loggedInUser.fullName ||
+    loggedInUser.name ||
+    loggedInUser.email ||
+    "Bank Officer";
+
+  const branchName =
+    receipt.issued_by?.branch ||
+    loggedInUser.branch ||
+    "CIB Branch";
+
+  const issuedBy = branchName ? `${employeeName} (${branchName})` : employeeName;
+
+  // Fee line items
+  const feeLines = receipt.lines || (receipt.invoices || []).map((inv) => ({
+    student: inv.studentName,
+    institution: inv.school,
+    fee_type: inv.feeCategory,
+    period: inv.academicTerm,
+    paid: inv.amount,
+  }));
+
+  const institutionName =
+    receipt.institution ||
+    (feeLines.length > 0 ? feeLines[0].institution : null);
+
+  const paymentType = receipt.payment_type || receipt.paymentType || "full";
+  const eppPlan = receipt.eppPlan;
+
+  const formattedDate = issuedDate
+    ? new Date(issuedDate).toLocaleString(undefined, {
         day: "2-digit",
         month: "short",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        hour12: false,
       })
-    : "";
+    : "—";
 
   return (
     <div className="page">
-      <h1 className="page-title">Payment complete</h1>
-      <p className="page-subtitle">Receipt generated and printed.</p>
+      <h1 className="page-title">Payment Complete</h1>
+      <p className="page-subtitle">Official settlement receipt generated and recorded.</p>
 
       <div className="receipt-card">
+        {/* Receipt Header */}
         <div className="receipt-head">
-          <div className="receipt-kicker">Payment receipt</div>
-          <div className="receipt-amount">{formatAmount(amountPaid, amountCurrency)}</div>
-          <span className="status-pill status-settled">Settled</span>
+          <div className="receipt-kicker">CIB Electronic Settlement Proof</div>
+          <div className="receipt-amount">{formatAmount(totalAmount, currency)}</div>
+
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", marginTop: "0.5rem" }}>
+            <span className="status-pill status-settled">Settled</span>
+            {paymentType === "partial" && (
+              <span className="status-pill status-pending">Partial Settlement</span>
+            )}
+            {eppPlan && (
+              <span className="status-pill" style={{ background: "#e0f2fe", color: "#0369a1" }}>
+                EPP Active ({eppPlan.tenorMonths || eppPlan.tenor_months} Mos)
+              </span>
+            )}
+          </div>
         </div>
 
         <hr className="divider" />
 
+        {/* Core Metadata */}
         <table className="receipt-meta">
           <tbody>
             <tr>
-              <td>Receipt number</td>
-              <td className="mono">{receiptNumber}</td>
+              <td>Receipt Number</td>
+              <td className="mono font-bold">{receiptNumber}</td>
             </tr>
+            {payerName && (
+              <tr>
+                <td>Payer / Guardian</td>
+                <td><strong>{payerName}</strong></td>
+              </tr>
+            )}
             {nationalId && (
               <tr>
-                <td>Guardian national ID</td>
+                <td>Guardian National ID</td>
                 <td className="mono">{maskNationalId(nationalId)}</td>
               </tr>
             )}
-            {institution && (
+            {institutionName && (
               <tr>
-                <td>Institution</td>
-                <td>{institution}</td>
+                <td>Educational Institution</td>
+                <td>{institutionName}</td>
               </tr>
             )}
             <tr>
-              <td>Method</td>
-              <td>{METHOD_LABEL[method] ?? method}</td>
+              <td>Settlement Channel</td>
+              <td>{METHOD_LABEL[method] || method}</td>
             </tr>
+            {accountRef && (
+              <tr>
+                <td>Account / Card Reference</td>
+                <td className="mono">{accountRef}</td>
+              </tr>
+            )}
+            {bankRef && (
+              <tr>
+                <td>Bank Authorization Code</td>
+                <td className="mono">{bankRef}</td>
+              </tr>
+            )}
           </tbody>
         </table>
 
         <hr className="divider" />
 
-        <div className="receipt-section-label">Fees paid</div>
+        {/* EPP Details Box (if applicable) */}
+        {eppPlan && (
+          <>
+            <div className="receipt-section-label" style={{ color: "#0369a1" }}>
+              Easy Payment Plan Summary
+            </div>
+            <table className="receipt-meta" style={{ marginBottom: "1rem" }}>
+              <tbody>
+                <tr>
+                  <td>Financed Principal</td>
+                  <td>{formatAmount(eppPlan.principal, currency)}</td>
+                </tr>
+                <tr>
+                  <td>Monthly Installment</td>
+                  <td className="font-bold text-orange">
+                    {formatAmount(eppPlan.monthlyInstalment || eppPlan.monthly_installment, currency)} / month
+                  </td>
+                </tr>
+                <tr>
+                  <td>Tenor</td>
+                  <td>{eppPlan.tenorMonths || eppPlan.tenor_months} Months</td>
+                </tr>
+              </tbody>
+            </table>
+            <hr className="divider" />
+          </>
+        )}
+
+        {/* Itemized Fee Breakdown */}
+        <div className="receipt-section-label">Settled Fee Lines</div>
         <table className="receipt-lines">
           <tbody>
-            {invoices.map((inv) => (
-              <tr key={inv.id}>
+            {feeLines.map((line, idx) => (
+              <tr key={idx}>
                 <td>
-                  <div className="line-student">{inv.studentName}</div>
-                  <div className="line-category">{inv.feeCategory}</div>
+                  <div className="line-student">{line.student}</div>
+                  <div className="line-category">
+                    {line.fee_type} {line.period ? `· ${line.period}` : ""}
+                  </div>
                 </td>
-                <td className="line-amount">{formatAmount(inv.amount, inv.currency)}</td>
+                <td className="line-amount">
+                  {formatAmount(line.paid ?? line.amount, currency)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -125,26 +288,23 @@ export default function ReceiptPage() {
         <hr className="divider" />
 
         <div className="receipt-total-row">
-          <span>Total</span>
-          <span>{formatAmount(amountPaid, amountCurrency)}</span>
+          <span>Total Settled</span>
+          <span>{formatAmount(totalAmount, currency)}</span>
         </div>
 
         <hr className="divider" />
 
+        {/* Audit Footer */}
         <table className="receipt-meta">
           <tbody>
-            {processedBy && (
-              <tr>
-                <td>Processed by</td>
-                <td>{processedBy}</td>
-              </tr>
-            )}
-            {processedDate && (
-              <tr>
-                <td>Date & time</td>
-                <td>{processedDate}</td>
-              </tr>
-            )}
+            <tr>
+              <td>Processed By</td>
+              <td>{issuedBy}</td>
+            </tr>
+            <tr>
+              <td>Timestamp</td>
+              <td className="mono">{formattedDate}</td>
+            </tr>
           </tbody>
         </table>
 
@@ -152,13 +312,13 @@ export default function ReceiptPage() {
 
         <div className="receipt-actions">
           <button type="button" className="btn btn-secondary" onClick={() => window.print()}>
-            Print
-          </button>
-          <button type="button" className="btn btn-secondary">
-            Download PDF
+            Print Receipt
           </button>
           <Link to="/browse" className="btn">
-            New search
+            New Search
+          </Link>
+          <Link to="/history" className="btn btn-secondary">
+            Payment History
           </Link>
         </div>
       </div>
