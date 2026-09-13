@@ -6,12 +6,14 @@ function authHeader() {
 }
 
 async function request(path, options = {}) {
+  const { headers: extraHeaders, ...rest } = options;
+
   const res = await fetch(`${API_URL}${path}`, {
-    ...options,
+    ...rest,
     headers: {
       "Content-Type": "application/json",
       ...authHeader(),
-      ...options.headers,
+      ...extraHeaders,
     },
   });
 
@@ -19,19 +21,26 @@ async function request(path, options = {}) {
   try {
     data = await res.json();
   } catch {
+    // response had no JSON body
   }
 
   if (!res.ok) {
     const error = new Error(data?.message || "Request failed. Please try again.");
     error.status = res.status;
-    error.details = data?.details || null; 
+    error.code = data?.code || null;
+    error.field = data?.field || null;
+    error.details = data?.details || null;
     throw error;
   }
   return data;
 }
 
 export const apiGet = (path) => request(path);
-export const apiPost = (path, body) =>
-  request(path, { method: "POST", body: JSON.stringify(body) });
-export const apiDelete = (path) => request(path, { method: "DELETE" });
 
+// `options` can now carry extra fetch options (most importantly `headers`,
+// e.g. { headers: { "Idempotency-Key": key } }) without them being silently
+// dropped, which was happening before this change.
+export const apiPost = (path, body, options = {}) =>
+  request(path, { method: "POST", body: JSON.stringify(body), ...options });
+
+export const apiDelete = (path) => request(path, { method: "DELETE" });
