@@ -22,7 +22,7 @@ import {
 } from "../middleware/upload.middleware.js";
 
 import {
-  getInstitutionFeesController
+  getInstitutionFeesController, createInstitutionFeeController
 } from "../controllers/institutionFees.controller.js";
 
 
@@ -62,6 +62,13 @@ router.get(
   authenticate(),
   authorizeRoles("institution"),
   getInstitutionFeesController
+);
+
+router.post(
+  "/:id/fees",
+  authenticate(),
+  authorizeRoles("institution"),
+  createInstitutionFeeController
 );
 
 
