@@ -18,6 +18,7 @@ import BackOfficeManagement from "./pages/BackOfficeManagement";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import TransactionHistoryPage from "./pages/TransactionHistoryPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
@@ -112,6 +113,7 @@ export default function App() {
 
         <Route path="/" element={<Home />} />
         <Route path="*" element={<NotFound />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </Suspense>
   );

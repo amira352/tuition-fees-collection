@@ -20,8 +20,10 @@ export default function Navbar({ employeeName = "Bank Agent", onSignOut }) {
       </div>
 
       <div className="navbar-user">
-        <span>{employeeName}</span>
-        <div className="navbar-avatar">{initials}</div>
+          <button type="button" className="navbar-user-btn" onClick={onProfileClick}>
+            <span>{employeeName}</span>
+            <div className="navbar-avatar">{initials}</div>
+          </button>
         <button type="button" className="navbar-signout" onClick={onSignOut}>
           Sign out
         </button>
