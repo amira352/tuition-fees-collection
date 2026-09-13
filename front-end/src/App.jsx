@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import TransactionHistoryPage from "./pages/TransactionHistoryPage";
 import FeesManagement from "./pages/institution/FeesManagement";
+import ProfilePage from "./pages/ProfilePage";
 
 const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
@@ -64,6 +65,13 @@ export default function App() {
             }
           />
 
+<<<<<<< HEAD
+        <Route path="/" element={<Home />} />
+        <Route path="*" element={<NotFound />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Routes >
+    </Suspense >
+=======
           <Route
             path="/institution"
             element={
@@ -131,5 +139,6 @@ export default function App() {
         </Routes>
       </Suspense>
     </BrowserRouter>
+>>>>>>> 283f90a4890549d972ff59923751c722de59ded5
   );
 }
