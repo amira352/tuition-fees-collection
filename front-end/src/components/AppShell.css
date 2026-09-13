@@ -1,3 +1,18 @@
+:root {
+  --cib-navy: #002d62;
+  --cib-navy-700: #083c79;
+  --cib-navy-900: #001f44;
+  --cib-orange: #ff6f00;
+  --cib-blue: #0072ce;
+  --line: #e2e8f0;
+  --muted: #64748b;
+  --field-bg: #f8fafc;
+  --page-bg: #f4f7fb;
+}
+
+/* ==========================================================================
+   APP SHELL LAYOUT
+   ========================================================================== */
 .shell {
   min-height: 100vh;
   display: flex;
@@ -5,18 +20,32 @@
   background: var(--page-bg);
 }
 
+/* Container holding both <Sidebar /> and <main className="shell-main"> */
 .shell-body {
   display: flex;
   flex: 1;
   min-height: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1.5rem;
-  background: #fff;
-  border-bottom: 1px solid var(--line);
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border-bottom: none;
 }
 
+/* Main scrollable viewport for page routes (<Outlet />) */
+.shell-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ==========================================================================
+   NAVBAR & HEADER STYLES (Used inside Navbar component)
+   ========================================================================== */
 .shell-left {
   display: flex;
   align-items: center;
@@ -51,13 +80,13 @@
 }
 
 .shell-nav-link:hover {
-  color: var(--navy-900);
+  color: var(--cib-navy);
   background: var(--field-bg);
 }
 
 .shell-nav-link.active {
-  color: var(--navy-700);
-  background: #e7eefb;
+  color: var(--cib-navy);
+  background: #e0f2fe;
 }
 
 .shell-user {
@@ -78,7 +107,7 @@
 .shell-logout {
   border: 1px solid var(--line);
   background: #fff;
-  color: var(--navy-700);
+  color: var(--cib-navy);
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
@@ -93,16 +122,9 @@
   border-color: #c6cedb;
 }
 
-.shell-main {
-  flex: 1;
-  min-width: 0;
-  overflow: auto;
-  width: 100%;
-  max-width: 76rem;
-  margin: 0 auto;
-  padding: 2.25rem 1.75rem;
-}
-
+/* ==========================================================================
+   RESPONSIVE LAYOUT
+   ========================================================================== */
 @media (max-width: 768px) {
   .shell-body {
     flex-direction: column;
