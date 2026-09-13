@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import TransactionHistoryPage from "./pages/TransactionHistoryPage";
 import FeesManagement from "./pages/institution/FeesManagement";
+import ProfilePage from "./pages/ProfilePage";
 
 const InstitutionDashboard = lazy(() =>
   import("./pages/institution/InstitutionDashboard"),
