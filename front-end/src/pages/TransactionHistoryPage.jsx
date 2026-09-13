@@ -2,13 +2,10 @@ import { useMemo, useState } from "react";
 import "./shared.css";
 import "../Styles/TransactionHistoryPage.css";
 
-// ---------------------------------------------------------------------------
-// PLACEHOLDER DATA — replace with a real fetch once the endpoint exists, e.g.
-//   GET /api/transactions?query=...&status=...
-// ---------------------------------------------------------------------------
 const PLACEHOLDER_TRANSACTIONS = [
   {
     reference: "RC-8842910",
+    guardianName: "Mona Samir Abdelrahman",
     guardianId: "29705121234534",
     institution: "Cairo International School",
     amount: 20250,
@@ -19,6 +16,7 @@ const PLACEHOLDER_TRANSACTIONS = [
   },
   {
     reference: "RC-8842877",
+    guardianName: "Ahmed Hassan",
     guardianId: "29804151234567",
     institution: "Nile University",
     amount: 2300,
@@ -29,6 +27,7 @@ const PLACEHOLDER_TRANSACTIONS = [
   },
   {
     reference: "RC-8842799",
+    guardianName: "Tarek Mahmoud",
     guardianId: "29907211234512",
     institution: "AUC",
     amount: 45000,
@@ -39,6 +38,7 @@ const PLACEHOLDER_TRANSACTIONS = [
   },
   {
     reference: "RC-8842840",
+    guardianName: "Nouran Ezzat",
     guardianId: "30102031234588",
     institution: "Cairo International School",
     amount: 1300,
@@ -97,6 +97,7 @@ export default function TransactionHistoryPage() {
       rows = rows.filter(
         (t) =>
           t.reference.toLowerCase().includes(q) ||
+          t.guardianName.toLowerCase().includes(q) ||
           t.guardianId.includes(q) ||
           t.institution.toLowerCase().includes(q)
       );
@@ -139,7 +140,7 @@ export default function TransactionHistoryPage() {
             <input
               type="text"
               className="field-input"
-              placeholder="Search by reference, guardian ID or institution"
+              placeholder="Search by name, reference, or ID"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -153,6 +154,7 @@ export default function TransactionHistoryPage() {
             <thead>
               <tr>
                 <th>Reference</th>
+                <th>Guardian / Student</th>
                 <th>Guardian ID</th>
                 <th>Institution</th>
                 <th>Amount</th>
@@ -167,6 +169,7 @@ export default function TransactionHistoryPage() {
                 return (
                   <tr key={t.reference}>
                     <td className="mono">{t.reference}</td>
+                    <td><strong>{t.guardianName}</strong></td>
                     <td className="mono">{maskGuardianId(t.guardianId)}</td>
                     <td>{t.institution}</td>
                     <td>{formatAmount(t.amount, t.currency)}</td>
