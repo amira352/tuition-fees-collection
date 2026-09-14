@@ -8,31 +8,44 @@ import ComingSoon from "./components/ComingSoon";
 import Login from "./pages/Login";
 import SetPassword from "./pages/SetPassword";
 import Dashboard from "./pages/Dashboard";
-import UploadDues from "./pages/UploadDues";
 import SearchPage from "./pages/SearchPage";
 import FeePaymentPage from "./pages/FeePaymentPage";
 import ReceiptPage from "./pages/ReceiptPage";
 import ReceiptsPage from "./pages/ReceiptsPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
+import TransactionHistoryPage from "./pages/TransactionHistoryPage";
 import Admin from "./pages/Admin";
 import InstitutionsManagement from "./pages/InstitutionsManagement";
 import BackOfficeManagement from "./pages/BackOfficeManagement";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
-import TransactionHistoryPage from "./pages/TransactionHistoryPage";
-import FeesManagement from "./pages/institution/FeesManagement";
-import ProfilePage from "./pages/ProfilePage";
 
+// Lazy-loaded pages
 const InstitutionDashboard = lazy(() =>
-  import("./pages/institution/InstitutionDashboard"),
+  import("./pages/institution/InstitutionDashboard")
 );
 const InstitutionPayments = lazy(() =>
-  import("./pages/institution/InstitutionPayments"),
+  import("./pages/institution/InstitutionPayments")
 );
 const InstitutionEppPlans = lazy(() =>
-  import("./pages/institution/InstitutionEppPlans"),
+  import("./pages/institution/InstitutionEppPlans")
 );
 
+// Fallbacks for files that may not exist on all branches
+const FeesManagement = lazy(() =>
+  import("./pages/institution/FeesManagement").catch(() => ({
+    default: () => <ComingSoon />,
+  }))
+);
+const UploadDues = lazy(() =>
+  import("./pages/UploadDues").catch(() => ({
+    default: () => <ComingSoon />,
+  }))
+);
+const ProfilePage = lazy(() =>
+  import("./pages/ProfilePage").catch(() => ({
+    default: () => <ComingSoon />,
+  }))
+);
 
 function Home() {
   if (!isAuthenticated()) {
@@ -65,6 +78,7 @@ export default function App() {
             }
           />
 
+          {/* Institution Portal */}
           <Route
             path="/institution"
             element={
@@ -84,6 +98,7 @@ export default function App() {
             <Route path="profile" element={<ComingSoon />} />
           </Route>
 
+          {/* Back-Office Operations & Admin */}
           <Route
             element={
               <ProtectedRoute>
@@ -98,6 +113,7 @@ export default function App() {
             <Route path="/receipt" element={<ReceiptPage />} />
             <Route path="/history" element={<TransactionHistoryPage />} />
             <Route path="/receipts" element={<ReceiptsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
 
             <Route
               path="/admin"
@@ -129,7 +145,6 @@ export default function App() {
 
           <Route path="/" element={<Home />} />
           <Route path="*" element={<NotFound />} />
-          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

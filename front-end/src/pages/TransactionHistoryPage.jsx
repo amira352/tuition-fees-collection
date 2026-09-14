@@ -1,63 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { apiGet } from "../lib/api";
 import "./shared.css";
 import "../Styles/TransactionHistoryPage.css";
 
-const PLACEHOLDER_TRANSACTIONS = [
-  {
-    reference: "RC-8842910",
-    guardianName: "Mona Samir Abdelrahman",
-    guardianId: "29705121234534",
-    institution: "Cairo International School",
-    amount: 20250,
-    currency: "EGP",
-    method: "EPP · 12mo",
-    status: "settled",
-    date: "2026-09-02T14:32:00Z",
-  },
-  {
-    reference: "RC-8842877",
-    guardianName: "Ahmed Hassan",
-    guardianId: "29804151234567",
-    institution: "Nile University",
-    amount: 2300,
-    currency: "EGP",
-    method: "Bank transfer",
-    status: "settled",
-    date: "2026-09-02T13:05:00Z",
-  },
-  {
-    reference: "RC-8842799",
-    guardianName: "Tarek Mahmoud",
-    guardianId: "29907211234512",
-    institution: "AUC",
-    amount: 45000,
-    currency: "EGP",
-    method: "Card",
-    status: "settled",
-    date: "2026-09-02T11:47:00Z",
-  },
-  {
-    reference: "RC-8842840",
-    guardianName: "Nouran Ezzat",
-    guardianId: "30102031234588",
-    institution: "Cairo International School",
-    amount: 1300,
-    currency: "EGP",
-    method: "Bank transfer",
-    status: "pending",
-    date: "2026-09-02T10:12:00Z",
-  },
-];
-
 const STATUS_TABS = [
   { key: "all", label: "All" },
-  { key: "settled", label: "Settled" },
+  { key: "completed", label: "Completed" },
   { key: "pending", label: "Pending" },
   { key: "failed", label: "Failed" },
 ];
 
 const STATUS_LABEL = {
-  settled: { text: "Settled", className: "status-pill status-settled" },
+  completed: { text: "Completed", className: "status-pill status-settled" },
   pending: { text: "Pending", className: "status-pill status-pending" },
   failed: { text: "Failed", className: "status-pill status-failed" },
 };
@@ -67,52 +21,116 @@ function formatAmount(amount, currency = "EGP") {
 }
 
 function formatDate(iso) {
+  if (!iso) return "—";
   return new Date(iso).toLocaleString(undefined, {
     day: "2-digit",
     month: "short",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
 }
 
-function maskGuardianId(id) {
-  if (!id || id.length < 6) return id;
-  return `${id.slice(0, 6)}••••${id.slice(-2)}`;
-}
-
 export default function TransactionHistoryPage() {
+  const [payments, setPayments] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadTransactions() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const queryParams = new URLSearchParams();
+        if (activeTab !== "all") {
+          queryParams.set("status", activeTab);
+        }
+        queryParams.set("limit", "100");
+
+        // Hits GET /api/payments/history mounted in app.js
+        const data = await apiGet(`/payments/history?${queryParams.toString()}`);
+
+        if (isMounted) {
+          setPayments(data.payments || []);
+          setSummary(data.summary || null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message || "Failed to load payment history.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadTransactions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab]);
+
+  // Client-side search across payer, receipt number, student, institution, and payment ID
   const filtered = useMemo(() => {
-    let rows = PLACEHOLDER_TRANSACTIONS;
-
-    if (activeTab !== "all") {
-      rows = rows.filter((t) => t.status === activeTab);
-    }
-
     const q = query.trim().toLowerCase();
-    if (q) {
-      rows = rows.filter(
-        (t) =>
-          t.reference.toLowerCase().includes(q) ||
-          t.guardianName.toLowerCase().includes(q) ||
-          t.guardianId.includes(q) ||
-          t.institution.toLowerCase().includes(q)
-      );
-    }
+    if (!q) return payments;
 
-    return rows;
-  }, [query, activeTab]);
+    return payments.filter((item) => {
+      const receiptNo = (item.receipt_number || "").toLowerCase();
+      const paymentId = (String(item.payment_id || "")).toLowerCase();
+      const payer = (item.payer || "").toLowerCase();
+      const institution = (item.lines?.[0]?.institution || "").toLowerCase();
+      const student = (item.lines?.[0]?.student || "").toLowerCase();
+      const studentCode = (item.lines?.[0]?.student_code || "").toLowerCase();
+
+      return (
+        receiptNo.includes(q) ||
+        paymentId.includes(q) ||
+        payer.includes(q) ||
+        student.includes(q) ||
+        studentCode.includes(q) ||
+        institution.includes(q)
+      );
+    });
+  }, [payments, query]);
 
   return (
     <div className="page">
-      <h1 className="page-title">Transaction history</h1>
-      <p className="page-subtitle">Every settlement processed.</p>
+      <div className="th-header" style={{ marginBottom: "1.5rem" }}>
+        <h1 className="page-title">Transaction History</h1>
+        <p className="page-subtitle">
+          Review all settlements, tenders, and fee items processed through the collection engine.
+        </p>
+
+        {/* Live Summary Bar from Backend getPaymentHistory */}
+        {summary && (
+          <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.75rem", fontSize: "0.85rem", color: "#64748b" }}>
+            <span>
+              Total Matching: <strong style={{ color: "var(--cib-navy, #002d62)" }}>{summary.total_matching}</strong>
+            </span>
+            <span>
+              Collected on Page:{" "}
+              <strong style={{ color: "#16a34a" }}>
+                {formatAmount(summary.collected_on_this_page, summary.currency)}
+              </strong>
+            </span>
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <div className="th-toolbar">
+          {/* Status Tabs */}
           <div className="admin-tabs">
             {STATUS_TABS.map((tab) => (
               <button
@@ -126,6 +144,7 @@ export default function TransactionHistoryPage() {
             ))}
           </div>
 
+          {/* Search Bar */}
           <div className="input-with-icon th-search">
             <svg
               className="input-icon"
@@ -140,23 +159,35 @@ export default function TransactionHistoryPage() {
             <input
               type="text"
               className="field-input"
-              placeholder="Search by name, reference, or ID"
+              placeholder="Search by payer, student, ref, or school"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="placeholder-card">No transactions match that search.</div>
-        ) : (
+        {/* Loading / Error States */}
+        {loading && <div className="placeholder-card">Loading transactions…</div>}
+
+        {!loading && error && (
+          <div className="placeholder-card" style={{ color: "#dc2626" }}>
+            {error}
+          </div>
+        )}
+
+        {/* Results Table */}
+        {!loading && !error && filtered.length === 0 && (
+          <div className="placeholder-card">No transactions match that filter.</div>
+        )}
+
+        {!loading && !error && filtered.length > 0 && (
           <table>
             <thead>
               <tr>
                 <th>Reference</th>
-                <th>Guardian / Student</th>
-                <th>Guardian ID</th>
+                <th>Payer / Student</th>
                 <th>Institution</th>
+                <th>Fee Line</th>
                 <th>Amount</th>
                 <th>Method</th>
                 <th>Status</th>
@@ -165,17 +196,42 @@ export default function TransactionHistoryPage() {
             </thead>
             <tbody>
               {filtered.map((t) => {
-                const status = STATUS_LABEL[t.status];
+                const statusConfig = STATUS_LABEL[t.status] || {
+                  text: t.status,
+                  className: "status-pill",
+                };
+                const primaryLine = t.lines?.[0] || {};
+                const tender = t.paid_from?.[0] || {};
+
                 return (
-                  <tr key={t.reference}>
-                    <td className="mono">{t.reference}</td>
-                    <td><strong>{t.guardianName}</strong></td>
-                    <td className="mono">{maskGuardianId(t.guardianId)}</td>
-                    <td>{t.institution}</td>
-                    <td>{formatAmount(t.amount, t.currency)}</td>
-                    <td>{t.method}</td>
+                  <tr key={t.payment_id}>
+                    <td className="mono">
+                      {t.receipt_number || (t.payment_id ? String(t.payment_id).slice(0, 8).toUpperCase() : "—")}
+                    </td>
                     <td>
-                      <span className={status.className}>{status.text}</span>
+                      <strong>{t.payer || "Unknown Payer"}</strong>
+                      {primaryLine.student && (
+                        <div style={{ fontSize: "0.78rem", color: "var(--muted, #64748b)" }}>
+                          Student: {primaryLine.student}
+                        </div>
+                      )}
+                    </td>
+                    <td>{primaryLine.institution || "—"}</td>
+                    <td>
+                      {primaryLine.fee_type
+                        ? `${primaryLine.fee_type} (${primaryLine.period || "Term"})`
+                        : "—"}
+                    </td>
+                    <td style={{ fontWeight: 700, color: "var(--cib-navy, #002d62)" }}>
+                      {formatAmount(t.amount, t.currency)}
+                    </td>
+                    <td>
+                      <span style={{ textTransform: "capitalize" }}>
+                        {tender.method || t.payment_type || "Card"}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={statusConfig.className}>{statusConfig.text}</span>
                     </td>
                     <td>{formatDate(t.date)}</td>
                   </tr>

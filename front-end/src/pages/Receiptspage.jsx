@@ -1,173 +1,271 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiGet } from "../lib/api";
 import "./shared.css";
 import "../Styles/ReceiptsPage.css";
-
-// ---------------------------------------------------------------------------
-// PLACEHOLDER DATA — replace with a real fetch once the endpoint is ready:
-//   GET /api/receipts?query=...
-// Shape to preserve: { receiptNumber, studentName, institution, amount,
-// currency, date, nationalId, method, processedBy, invoices }
-// `invoices`/etc. here are enough to let "View" open the full ReceiptPage
-// without a second round trip — once there's a real backend, View can
-// instead fetch the full receipt by receiptNumber on demand.
-// ---------------------------------------------------------------------------
-const PLACEHOLDER_RECEIPTS = [
-  {
-    receiptNumber: "RC-8842910",
-    studentName: "Ahmed M. Hassan",
-    institution: "Cairo International School",
-    amount: 20250,
-    currency: "EGP",
-    date: "2026-09-02T14:32:00Z",
-    nationalId: "29804151234567",
-    method: "card",
-    processedBy: "Salma Sami (BO-2026-08421)",
-    invoices: [
-      { id: "inv-001", studentName: "Ahmed Mohamed Hassan", feeCategory: "Tuition Fees", amount: 8500, currency: "EGP" },
-      { id: "inv-002", studentName: "Ahmed Mohamed Hassan", feeCategory: "Bus Services", amount: 2450, currency: "EGP" },
-      { id: "inv-004", studentName: "Mariam Mohamed Hassan", feeCategory: "Tuition Fees", amount: 8500, currency: "EGP" },
-      { id: "inv-005", studentName: "Youssef Mohamed Hassan", feeCategory: "Bus Services", amount: 2450, currency: "EGP" },
-    ],
-  },
-  {
-    receiptNumber: "RC-8842877",
-    studentName: "Youssef Adel",
-    institution: "Nile University",
-    amount: 2300,
-    currency: "EGP",
-    date: "2026-09-02T13:05:00Z",
-    nationalId: "29907211234512",
-    method: "cash",
-    processedBy: "Omar Nabil (BO-04410)",
-    invoices: [{ id: "inv-101", studentName: "Youssef Adel", feeCategory: "Tuition Fees", amount: 2300, currency: "EGP" }],
-  },
-  {
-    receiptNumber: "RC-8842799",
-    studentName: "Laila Farouk",
-    institution: "AUC",
-    amount: 45000,
-    currency: "EGP",
-    date: "2026-09-01T16:40:00Z",
-    nationalId: "29855111234509",
-    method: "card",
-    processedBy: "Salma Sami (BO-2026-08421)",
-    invoices: [{ id: "inv-201", studentName: "Laila Farouk", feeCategory: "Tuition Fees", amount: 45000, currency: "EGP" }],
-  },
-];
 
 function formatAmount(amount, currency = "EGP") {
   return `${currency} ${Number(amount || 0).toLocaleString()}`;
 }
 
 function formatDate(iso) {
-  return new Date(iso).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default function ReceiptsPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState(PLACEHOLDER_RECEIPTS);
+  const [receipts, setReceipts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return results;
-    const q = query.trim().toLowerCase();
-    return results.filter(
-      (r) =>
-        r.receiptNumber.toLowerCase().includes(q) ||
-        r.studentName.toLowerCase().includes(q) ||
-        r.nationalId?.includes(q)
-    );
-  }, [query, results]);
+  // 1. Initial load: Retrieve issued receipts from completed settlements
+  useEffect(() => {
+    let isMounted = true;
 
+    async function loadIssuedReceipts() {
+      setIsLoading(true);
+      setErrorMessage("");
+      try {
+        // Retrieve completed payments that generated receipts
+        const data = await apiGet("/payments/history?status=completed&limit=50");
+        const payments = data?.payments || [];
+
+        if (isMounted) {
+          const mapped = payments
+            .filter((p) => p.receipt_number)
+            .map((p) => {
+              const primaryLine = p.lines?.[0] || {};
+              return {
+                receiptNumber: p.receipt_number,
+                paymentId: p.payment_id,
+                studentName: primaryLine.student || "Multiple Students",
+                studentCode: primaryLine.student_code,
+                institution: primaryLine.institution || "—",
+                amount: p.amount,
+                currency: p.currency || "EGP",
+                date: p.date,
+                payer: p.payer,
+                method: p.paid_from?.[0]?.method || p.payment_type || "card",
+                invoices: (p.lines || []).map((l, i) => ({
+                  id: `line-${i}`,
+                  studentName: l.student,
+                  school: l.institution,
+                  feeCategory: l.fee_type,
+                  academicTerm: l.period,
+                  amount: l.amount,
+                  currency: p.currency || "EGP",
+                })),
+                raw: p,
+              };
+            });
+
+          setReceipts(mapped);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setErrorMessage(err.message || "Failed to load receipts list.");
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadIssuedReceipts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Direct Search Handler (Searches list or queries GET /api/receipts/:receiptNumber directly)
   async function handleSearch(event) {
     event.preventDefault();
+    const cleanQuery = query.trim();
+    if (!cleanQuery) return;
+
     setIsSearching(true);
+    setErrorMessage("");
+
     try {
-      // TODO: replace with the real API call, e.g.
-      // const data = await apiGet(`/receipts?query=${encodeURIComponent(query)}`);
-      // setResults(data);
-      await new Promise((resolve) => setTimeout(resolve, 300)); // fake latency
+      // If the query looks like a receipt number (starts with RC-), query backend directly
+      if (cleanQuery.toUpperCase().startsWith("RC-")) {
+        try {
+          const res = await apiGet(`/receipts/${cleanQuery.toUpperCase()}`);
+          if (res?.receipt) {
+            const r = res.receipt;
+            const formatted = {
+              receiptNumber: r.receipt_number,
+              paymentId: r.payment_id,
+              studentName: r.lines?.[0]?.student || "Student",
+              institution: r.lines?.[0]?.institution || "—",
+              amount: r.total,
+              currency: r.currency || "EGP",
+              date: r.paid_on || r.issued_at,
+              payer: r.payer,
+              method: r.paid_from?.[0]?.method || "card",
+              invoices: (r.lines || []).map((l, i) => ({
+                id: `line-${i}`,
+                studentName: l.student,
+                school: l.institution,
+                feeCategory: l.fee_type,
+                academicTerm: l.period,
+                amount: l.paid,
+                currency: r.currency || "EGP",
+              })),
+            };
+
+            setReceipts((prev) => [
+              formatted,
+              ...prev.filter((item) => item.receiptNumber !== formatted.receiptNumber),
+            ]);
+            setIsSearching(false);
+            return;
+          }
+        } catch {
+          // If not found by direct ID, continue to client-side filter
+        }
+      }
     } finally {
       setIsSearching(false);
     }
   }
 
-  function handleView(receipt) {
+  // 3. Client-side filter across receipt number, payer, student, or school
+  const filtered = useMemo(() => {
+    if (!query.trim()) return receipts;
+    const q = query.trim().toLowerCase();
+    return receipts.filter(
+      (r) =>
+        r.receiptNumber.toLowerCase().includes(q) ||
+        r.studentName.toLowerCase().includes(q) ||
+        (r.payer && r.payer.toLowerCase().includes(q)) ||
+        (r.institution && r.institution.toLowerCase().includes(q))
+    );
+  }, [query, receipts]);
+
+  function handleView(r) {
     navigate("/receipt", {
       state: {
         receipt: {
-          receiptNumber: receipt.receiptNumber,
-          nationalId: receipt.nationalId,
-          institution: receipt.institution,
-          method: receipt.method,
-          amountPaid: receipt.amount,
-          amountCurrency: receipt.currency,
-          processedBy: receipt.processedBy,
-          processedAt: receipt.date,
-          invoices: receipt.invoices,
+          receipt_number: r.receiptNumber,
+          receiptNumber: r.receiptNumber,
+          paymentId: r.paymentId,
+          payer: r.payer,
+          institution: r.institution,
+          method: r.method,
+          total: r.amount,
+          amountPaid: r.amount,
+          amountCurrency: r.currency,
+          processedAt: r.date,
+          paid_on: r.date,
+          invoices: r.invoices,
+          lines: (r.invoices || []).map((inv) => ({
+            student: inv.studentName,
+            institution: inv.school,
+            fee_type: inv.feeCategory,
+            period: inv.academicTerm,
+            paid: inv.amount,
+          })),
         },
       },
     });
   }
 
-  function handleDownload(receipt) {
-    // TODO: wire up a real PDF download, e.g. window.open(`${API_URL}/receipts/${receipt.receiptNumber}/pdf`)
-    console.log("Download receipt:", receipt.receiptNumber);
+  function handleDownload(r) {
+    handleView(r);
+    setTimeout(() => {
+      window.print();
+    }, 300);
   }
 
   return (
     <div className="page">
       <h1 className="page-title">Receipts</h1>
-      <p className="page-subtitle">Search and re-issue receipts already generated.</p>
+      <p className="page-subtitle">Search, view, and print generated payment receipts.</p>
 
+      {/* Search Header */}
       <form className="card search-card" onSubmit={handleSearch}>
-        <label className="field-label">Search by receipt number, guardian ID or student name</label>
+        <label className="field-label" htmlFor="receipt-search-input">
+          Search by receipt number, student name, or institution
+        </label>
         <div className="search-row">
           <input
+            id="receipt-search-input"
             type="text"
             className="field-input"
-            placeholder="eg. 29901011234567"
+            placeholder="eg. RC-8842910 or Student Name"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button type="submit" className="btn" disabled={isSearching}>
+          <button type="submit" className="btn" disabled={isSearching || isLoading}>
             {isSearching ? "Searching…" : "Search"}
           </button>
         </div>
       </form>
 
+      {/* Content Area */}
       <div className="card">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="placeholder-card">Loading receipts archive…</div>
+        ) : errorMessage ? (
+          <div className="placeholder-card" style={{ color: "#dc2626" }}>
+            {errorMessage}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="placeholder-card">No receipts match that search.</div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Receipt</th>
-                <th>Student</th>
+                <th>Receipt No.</th>
+                <th>Student / Payer</th>
                 <th>Institution</th>
                 <th>Amount</th>
-                <th>Date</th>
+                <th>Issued Date</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((r) => (
                 <tr key={r.receiptNumber}>
-                  <td className="mono">{r.receiptNumber}</td>
-                  <td>{r.studentName}</td>
+                  <td className="mono font-bold" style={{ color: "var(--cib-navy, #002d62)" }}>
+                    {r.receiptNumber}
+                  </td>
+                  <td>
+                    <strong>{r.studentName}</strong>
+                    {r.payer && (
+                      <div style={{ fontSize: "0.78rem", color: "var(--muted, #64748b)" }}>
+                        Payer: {r.payer}
+                      </div>
+                    )}
+                  </td>
                   <td>{r.institution}</td>
-                  <td>{formatAmount(r.amount, r.currency)}</td>
+                  <td style={{ fontWeight: 700 }}>
+                    {formatAmount(r.amount, r.currency)}
+                  </td>
                   <td>{formatDate(r.date)}</td>
                   <td>
-                    <div className="row-actions">
-                      <button type="button" className="btn-link" onClick={() => handleView(r)}>
+                    <div className="row-actions" style={{ display: "flex", gap: "0.5rem" }}>
+                      <button
+                        type="button"
+                        className="btn-link"
+                        onClick={() => handleView(r)}
+                      >
                         View
                       </button>
-                      <button type="button" className="btn btn-sm" onClick={() => handleDownload(r)}>
-                        Download
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => handleDownload(r)}
+                      >
+                        Print
                       </button>
                     </div>
                   </td>
