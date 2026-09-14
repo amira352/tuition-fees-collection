@@ -1,12 +1,18 @@
 import { getEppQuotes, createEppPlan } from "./bank.client.js";
 import { createEppPlanRecord, findEppPlanByPaymentId } from "../repositories/eppPlan.repository.js";
 import { findPaymentById } from "../repositories/payment.repository.js";
+import { getInstitutionEppPlans } from "../repositories/eppPlan.repository.js";
 
 // BE-3 item 7: read from config, not a hardcoded whitelist — CIB publishes
 // 3-60 months. Set EPP_ALLOWED_TENORS in .env to widen this without a
 // code change. Also see sql/001_epp_tenor_constraint.sql, which loosens
 // the matching database CHECK constraint — this app-level list and that
 // SQL constraint should be kept in sync by hand.
+
+export const listInstitutionEppPlans = async (institutionId) => {
+  const plans = await getInstitutionEppPlans(institutionId);
+  return { institution_id: institutionId, plans };
+};
 export const getAllowedTenors = () =>
   (process.env.EPP_ALLOWED_TENORS || "3,6,12,18,24")
     .split(",")

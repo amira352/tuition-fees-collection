@@ -50,3 +50,15 @@ export const findEppPlanByPaymentId = async (paymentId) => {
 
   return data;
 };
+
+export const getInstitutionEppPlans = async (institutionId) => {
+  const { data, error } = await supabase.rpc("get_institution_epp_plans", {
+    p_institution_id: institutionId
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
