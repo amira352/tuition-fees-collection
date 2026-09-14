@@ -1,17 +1,114 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiGet } from "../lib/api";
 import { getUser } from "../lib/auth";
 import "../Styles/Dashboard.css";
+
+function formatAmount(amount, currency = "EGP") {
+  const num = Number(amount || 0);
+  if (num >= 1_000_000) {
+    return `${currency} ${(num / 1_000_000).toFixed(2)}M`;
+  }
+  if (num >= 1_000) {
+    return `${currency} ${(num / 1_000).toFixed(1)}k`;
+  }
+  return `${currency} ${num.toLocaleString()}`;
+}
+
+function formatTime(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const user = getUser();
 
+  const [summary, setSummary] = useState(null);
+  const [recentTransactions, setRecentTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboardData() {
+      setLoading(true);
+      setError("");
+
+      try {
+        // Parallel fetch for KPI summary and recent activity feed
+        const [summaryRes, historyRes] = await Promise.all([
+          apiGet("/dashboard/summary").catch(() => null),
+          apiGet("/payments/history?limit=5").catch(() => null),
+        ]);
+
+        if (!isMounted) return;
+
+        if (summaryRes?.summary) {
+          setSummary(summaryRes.summary);
+        }
+
+        if (historyRes?.payments) {
+          const mappedTx = historyRes.payments.map((p) => {
+            const primaryLine = p.lines?.[0] || {};
+            return {
+              ref: p.receipt_number || (p.payment_id ? String(p.payment_id).slice(0, 8).toUpperCase() : "—"),
+              name: p.payer || primaryLine.student || "Customer",
+              school: primaryLine.institution || "—",
+              amount: formatAmount(p.amount, p.currency),
+              status: p.status || "completed",
+              time: formatTime(p.date),
+            };
+          });
+          setRecentTransactions(mappedTx);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message || "Failed to load dashboard metrics.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Compute percentage trend label vs yesterday
+  const trendPercent = summary?.change_vs_yesterday_percent;
+  let trendLabel = "No comparison baseline";
+  let trendType = "neutral";
+
+  if (trendPercent !== null && trendPercent !== undefined) {
+    if (trendPercent > 0) {
+      trendLabel = `+${trendPercent}% vs yesterday`;
+      trendType = "positive";
+    } else if (trendPercent < 0) {
+      trendLabel = `${trendPercent}% vs yesterday`;
+      trendType = "negative";
+    } else {
+      trendLabel = "0% vs yesterday";
+      trendType = "neutral";
+    }
+  }
+
   const stats = [
     {
       title: "Collected Today",
-      value: "EGP 1.86M",
-      trend: "-12% vs yesterday",
-      trendType: "negative",
+      value: formatAmount(summary?.collected_today, summary?.currency || "EGP"),
+      trend: trendLabel,
+      trendType,
       color: "orange",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -21,8 +118,8 @@ export default function Dashboard() {
     },
     {
       title: "Transactions by You",
-      value: "24",
-      trend: "+4 today",
+      value: String(summary?.transactions_by_you ?? 0),
+      trend: `${summary?.transactions_by_you ?? 0} processed today`,
       trendType: "positive",
       color: "navy",
       icon: (
@@ -36,9 +133,9 @@ export default function Dashboard() {
     },
     {
       title: "Pending EPP Plans",
-      value: "3",
-      trend: "Requires attention",
-      trendType: "neutral",
+      value: String(summary?.pending_epp_plans ?? 0),
+      trend: summary?.pending_epp_plans > 0 ? "Requires review" : "All cleared",
+      trendType: summary?.pending_epp_plans > 0 ? "negative" : "neutral",
       color: "blue",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -49,9 +146,9 @@ export default function Dashboard() {
     },
     {
       title: "Failed Payments",
-      value: "1",
-      trend: "Last at 10:12",
-      trendType: "negative",
+      value: String(summary?.failed_today ?? 0),
+      trend: summary?.last_failure_at ? `Last at ${formatTime(summary.last_failure_at)}` : "None today",
+      trendType: summary?.failed_today > 0 ? "negative" : "positive",
       color: "red",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -63,48 +160,13 @@ export default function Dashboard() {
     },
   ];
 
-  const recentTransactions = [
-    {
-      ref: "RC-8842910",
-      name: "Ahmed M. Hassan",
-      school: "Cairo International School",
-      amount: "EGP 20,250",
-      status: "Settled",
-      time: "14:32",
-    },
-    {
-      ref: "RC-8842877",
-      name: "Youssef Adel",
-      school: "Nile University",
-      amount: "EGP 2,300",
-      status: "Settled",
-      time: "13:05",
-    },
-    {
-      ref: "RC-8842861",
-      name: "Laila Farouk",
-      school: "Heliopolis Language School",
-      amount: "EGP 4,600",
-      status: "Pending",
-      time: "11:47",
-    },
-    {
-      ref: "RC-8842840",
-      name: "Omar Nabil",
-      school: "Cairo International School",
-      amount: "EGP 1,300",
-      status: "Failed",
-      time: "10:12",
-    },
-  ];
-
   return (
     <div className="cib-dashboard">
       {/* Welcome Banner */}
       <section className="cib-welcome-hero">
         <div className="cib-hero-content">
           <div className="cib-badge-row">
-            <span className="cib-role-badge">{user?.role || "Agent"}</span>
+            <span className="cib-role-badge">{user?.role || "Bank Agent"}</span>
             <span className="cib-online-dot"></span> Live Portal
           </div>
           <h1 className="cib-hero-title">
@@ -130,6 +192,12 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {error && (
+        <div className="alert-error-banner" style={{ margin: "1rem 0", padding: "0.75rem", borderRadius: "8px", background: "#fef2f2", color: "#b91c1c" }}>
+          {error}
+        </div>
+      )}
+
       {/* KPI Cards Grid */}
       <section className="cib-stats-grid">
         {stats.map((s, idx) => (
@@ -138,15 +206,17 @@ export default function Dashboard() {
               <span className="cib-stat-title">{s.title}</span>
               <div className={`cib-stat-icon icon-${s.color}`}>{s.icon}</div>
             </div>
-            <div className="cib-stat-val">{s.value}</div>
+            <div className="cib-stat-val">
+              {loading ? "…" : s.value}
+            </div>
             <div className={`cib-trend trend-${s.trendType}`}>
-              <span>{s.trend}</span>
+              <span>{loading ? "Updating…" : s.trend}</span>
             </div>
           </div>
         ))}
       </section>
 
-      {/* Recent Activity Card */}
+      {/* Recent Activity Feed */}
       <section className="cib-recent-card">
         <div className="cib-card-header">
           <div>
@@ -163,34 +233,44 @@ export default function Dashboard() {
         </div>
 
         <div className="cib-table-wrap">
-          <table className="cib-table">
-            <thead>
-              <tr>
-                <th>Reference</th>
-                <th>Guardian / Student</th>
-                <th>Institution</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentTransactions.map((tx) => (
-                <tr key={tx.ref} className="cib-table-row">
-                  <td className="cib-ref mono">{tx.ref}</td>
-                  <td className="cib-strong">{tx.name}</td>
-                  <td className="cib-text-muted">{tx.school}</td>
-                  <td className="cib-amount">{tx.amount}</td>
-                  <td>
-                    <span className={`cib-status-tag status-${tx.status.toLowerCase()}`}>
-                      {tx.status}
-                    </span>
-                  </td>
-                  <td className="cib-time mono">{tx.time}</td>
+          {loading ? (
+            <div className="placeholder-card" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>
+              Loading recent transactions…
+            </div>
+          ) : recentTransactions.length === 0 ? (
+            <div className="placeholder-card" style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>
+              No recent settlements recorded today.
+            </div>
+          ) : (
+            <table className="cib-table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Payer / Student</th>
+                  <th>Institution</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Time</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {recentTransactions.map((tx) => (
+                  <tr key={tx.ref} className="cib-table-row">
+                    <td className="cib-ref mono">{tx.ref}</td>
+                    <td className="cib-strong">{tx.name}</td>
+                    <td className="cib-text-muted">{tx.school}</td>
+                    <td className="cib-amount">{tx.amount}</td>
+                    <td>
+                      <span className={`cib-status-tag status-${tx.status.toLowerCase()}`}>
+                        {tx.status}
+                      </span>
+                    </td>
+                    <td className="cib-time mono">{tx.time}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </section>
     </div>
