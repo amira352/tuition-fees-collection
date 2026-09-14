@@ -1,5 +1,5 @@
 import {
-  getInstitutionFeesService, createInstitutionFee
+  getInstitutionFeesService, createInstitutionFee, editInstitutionFee
 } from "../services/institutionFees.service.js";
 
 
@@ -57,6 +57,44 @@ export const createInstitutionFeeController = async (
 
 
     return res.status(201).json(result);
+
+  } catch (error) {
+
+    next(error);
+
+  }
+};
+
+export const editInstitutionFeeController = async (
+  req,
+  res,
+  next
+) => {
+
+  try {
+
+    const { id, feeId } = req.params;
+
+    const {
+      fee_type,
+      period,
+      amount,
+      currency
+    } = req.body;
+
+
+    const result =
+      await editInstitutionFee({
+        institutionId: id,
+        feeId,
+        feeType: fee_type,
+        period,
+        amount,
+        currency
+      });
+
+
+    return res.status(200).json(result);
 
   } catch (error) {
 
