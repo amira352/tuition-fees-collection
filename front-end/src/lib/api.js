@@ -37,10 +37,29 @@ async function request(path, options = {}) {
 
 export const apiGet = (path) => request(path);
 
-// `options` can now carry extra fetch options (most importantly `headers`,
-// e.g. { headers: { "Idempotency-Key": key } }) without them being silently
-// dropped, which was happening before this change.
 export const apiPost = (path, body, options = {}) =>
-  request(path, { method: "POST", body: JSON.stringify(body), ...options });
+  request(path, {
+    method: "POST",
+    body: JSON.stringify(body),
+    ...options,
+  });
 
-export const apiDelete = (path) => request(path, { method: "DELETE" });
+export const apiPut = (path, body, options = {}) =>
+  request(path, {
+    method: "PUT",
+    body: JSON.stringify(body),
+    ...options,
+  });
+
+export const apiPatch = (path, body, options = {}) =>
+  request(path, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+    ...options,
+  });
+
+export const apiDelete = (path, options = {}) =>
+  request(path, {
+    method: "DELETE",
+    ...options,
+  });
