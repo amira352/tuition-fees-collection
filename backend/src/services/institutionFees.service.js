@@ -1,4 +1,4 @@
-import { getInstitutionFees, createFeeForStudent }
+import { getInstitutionFees, createFeeForStudent, findFeeForInstitution, updateInstitutionFee }
   from "../repositories/fee.repository.js";
 
 import {
@@ -121,5 +121,100 @@ export const createInstitutionFee = async ({
     },
 
     fee
+  };
+};
+
+//edit fee
+export const editInstitutionFee = async ({
+  institutionId,
+  feeId,
+  feeType,
+  period,
+  amount,
+  currency
+}) => {
+
+  // 1. Validate input
+  if (!feeType || !feeType.trim()) {
+    throw badRequest("Fee type is required");
+  }
+
+  if (!period || !period.trim()) {
+    throw badRequest("Period is required");
+  }
+
+  if (
+    amount === undefined ||
+    amount === null ||
+    amount === ""
+  ) {
+    throw badRequest("Amount is required");
+  }
+
+  if (
+    Number.isNaN(Number(amount)) ||
+    Number(amount) <= 0
+  ) {
+    throw badRequest("Amount must be greater than zero");
+  }
+
+  if (!currency || !currency.trim()) {
+    throw badRequest("Currency is required");
+  }
+
+
+  // 2. Find the fee
+  const existingFee =
+    await findFeeForInstitution({
+      feeId,
+      institutionId
+    });
+
+
+  if (!existingFee) {
+    throw notFound(
+      "Fee not found for this institution"
+    );
+  }
+
+
+  // 3. Do not allow editing if any payment was made
+  if (
+    Number(existingFee.outstanding_amount) !==
+    Number(existingFee.amount)
+  ) {
+    const error = new Error(
+      "This fee cannot be edited because a payment has already been made"
+    );
+
+    error.statusCode = 409;
+    throw error;
+  }
+
+
+  // 4. Update the fee
+  const updatedFee =
+    await updateInstitutionFee({
+      feeId,
+      feeType: feeType.trim(),
+      period: period.trim(),
+      amount: Number(amount),
+      currency: currency.trim().toUpperCase(),
+      outstandingAmount: Number(amount),
+      status: "unpaid"
+    });
+
+
+  // 5. Return result
+  return {
+    message: "Fee updated successfully",
+
+    student: {
+      id: existingFee.children.id,
+      name: existingFee.children.name,
+      student_code: existingFee.children.student_code
+    },
+
+    fee: updatedFee
   };
 };
