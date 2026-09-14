@@ -42,7 +42,7 @@ export const getParentChildrenWithFees = async (
         id,
         fee_type,
         period,
-        net_amount,
+        amount,
         currency,
         outstanding_amount,
         status

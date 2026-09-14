@@ -19,7 +19,7 @@ export const uploadFeesCsv = async (
 
       return res.status(400).json({
         message:
-          "XLSX file is required"
+          "CSV file is required"
       });
     }
 
@@ -31,7 +31,7 @@ export const uploadFeesCsv = async (
 
     res.status(201).json({
       message:
-        "XLSX file processed successfully",
+        "CSV processed successfully",
       data: result
     });
 
@@ -80,8 +80,6 @@ export const downloadUploadErrors = async (
       "period",
       "amount",
       "currency",
-      "discount_percentage",
-      "description",
       "errors"
     ];
 
@@ -103,8 +101,6 @@ export const downloadUploadErrors = async (
         row.period,
         row.amount,
         row.currency,
-        row.discount_percentage,
-        row.description,
         item.errors.join(" | ")
       ]
         .map(value => {
