@@ -26,7 +26,7 @@ import {
 } from "../middleware/upload.middleware.js";
 
 import {
-  getInstitutionFeesController, createInstitutionFeeController
+  getInstitutionFeesController, createInstitutionFeeController, editInstitutionFeeController
 } from "../controllers/institutionFees.controller.js";
 
 
@@ -73,6 +73,13 @@ router.post(
   authenticate(),
   authorizeRoles("institution"),
   createInstitutionFeeController
+);
+
+router.put(
+  "/:id/fees/:feeId",
+  authenticate(),
+  authorizeRoles("institution"),
+  editInstitutionFeeController
 );
 
 router.get(
