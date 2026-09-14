@@ -6,10 +6,7 @@ export const upsertFee = async ({
   feeType,
   period,
   amount,
-  currency,
-  discountPercentage,
-  netAmount,
-  description
+  currency
 }) => {
   const { data, error } = await supabase
     .from("fees")
@@ -21,10 +18,7 @@ export const upsertFee = async ({
         amount,
         currency,
         outstanding_amount: amount,
-        status: "unpaid",
-        discount_percentage: discountPercentage,
-        net_amount: netAmount,
-        description: description || null
+        status: "unpaid"
       },
       {
         onConflict: "child_id,fee_type,period"

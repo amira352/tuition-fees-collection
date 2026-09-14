@@ -35,10 +35,6 @@ const REQUIRED_COLUMNS = [
   "currency"
 ];
 
-const OPTIONAL_COLUMNS = [
-  "discount_percentage",
-  "description"
-];
 
 const parseXlsxFile = (fileBuffer) => {
   try {
@@ -155,36 +151,6 @@ const validateRow = (row, rowNumber) => {
     errors.push("currency is required");
   }
 
-  // Discount percentage
-  // Empty discount is allowed.
-  // Empty means 0%.
-
-  if (
-    row.discount_percentage !== undefined &&
-    String(row.discount_percentage).trim() !== ""
-  ) {
-
-    const discount =
-      Number(row.discount_percentage);
-
-    if (
-      Number.isNaN(discount) ||
-      !Number.isFinite(discount) ||
-      discount < 0 ||
-      discount > 100
-    ) {
-
-      errors.push(
-        "discount_percentage must be a number between 0 and 100"
-      );
-    }
-  }
-
-
-  // Description
-  // Description is optional.
-  // No validation is needed.
-
   return {
     valid: errors.length === 0,
     errors,
@@ -239,44 +205,13 @@ const processValidRow = async ({
     });
   }
 
-  // Amount
-  const amount =
-    Number(row.amount);
-  // Discount
-  const discountPercentage =
-    String(
-      row.discount_percentage ?? ""
-    ).trim() === ""
-      ? 0
-      : Number(row.discount_percentage);
-
-  // Calculate net amount
-  const discountAmount =
-    amount *
-    (discountPercentage / 100);
-
-  const netAmount =
-    amount - discountAmount;
-
-  // Description
-  const description =
-    String(
-      row.description ?? ""
-    ).trim() || null;
-
-  // Save fee
-  // -----------------------------------
-
   await upsertFee({
     childId: child.id,
     feeType:
       row.fee_type,
     period: row.period,
     amount: Number(row.amount),
-    currency: row.currency,
-    discountPercentage,
-    netAmount,
-    description
+    currency: row.currency
   });
 };
 
@@ -317,7 +252,7 @@ export const uploadInstitutionFeesCsv = async ({
   if (existingUpload) {
 
     const error = new Error(
-      "This XLSX file has already been uploaded"
+      "This CSV file has already been uploaded"
     );
 
     error.statusCode = 409;
