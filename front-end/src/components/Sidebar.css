@@ -4,9 +4,13 @@
   gap: 0.35rem;
   width: 15rem;
   flex-shrink: 0;
-  padding: 1.25rem 0.85rem;
+  padding: 1.75rem 0.85rem !important; /* Matches .cib-dashboard top padding */
+  margin: 0 !important;
   background: #fff;
   border-right: 1px solid var(--line);
+  min-height: calc(100vh - 64px);
+  align-self: stretch;
+  justify-content: flex-start !important; /* Prevents vertical centering */
 }
 
 .sidebar-link {
@@ -21,43 +25,47 @@
   color: var(--muted);
   font: inherit;
   font-size: 0.88rem;
-  font-weight: 550;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .sidebar-link:hover {
-  background: var(--field-bg);
-  color: var(--ink);
+  background: #f4f7fb;
+  color: #002d62;
 }
 
+/* CIB Branded Active State */
 .sidebar-link.active {
-  background: #e7eefb;
-  color: var(--accent-dark);
-  font-weight: 650;
+  background: #e8f0fe !important;
+  color: #002d62 !important;
+  font-weight: 700;
 }
 
 .sidebar-dot {
-  width: 0.45rem;
-  height: 0.45rem;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 999px;
   background: currentColor;
   opacity: 0.35;
 }
 
 .sidebar-link.active .sidebar-dot {
-  opacity: 1;
+  background: #ff6f00 !important; /* CIB Signature Orange dot */
+  opacity: 1 !important;
+  box-shadow: 0 0 6px rgba(255, 111, 0, 0.4);
 }
 
 @media (max-width: 768px) {
   .sidebar {
     width: 100%;
+    min-height: auto;
     flex-direction: row;
     overflow-x: auto;
     border-right: none;
     border-bottom: 1px solid var(--line);
-    padding: 0.75rem;
+    padding: 0.75rem !important;
   }
 
   .sidebar-link {

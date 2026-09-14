@@ -1,0 +1,52 @@
+.epp-kpis {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1200px) {
+  .epp-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.epp-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .epp-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Instalment progress ---------- */
+.epp-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 140px;
+}
+
+.epp-progress-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--field-bg);
+  overflow: hidden;
+}
+
+.epp-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--navy-700);
+}
+
+.epp-progress-label {
+  flex-shrink: 0;
+  font-size: 0.74rem;
+  color: var(--muted);
+  white-space: nowrap;
+}

@@ -22,7 +22,10 @@ export default function AppShell() {
 
   function handleNavigate(key) {
     const item = NAV_ITEMS.find((entry) => entry.key === key);
-    if (item) navigate(item.path);
+
+    if (item) {
+      navigate(item.path);
+    }
   }
 
   function handleSignOut() {
@@ -32,10 +35,15 @@ export default function AppShell() {
 
   return (
     <div className="shell">
-      <Navbar employeeName={employeeName} onSignOut={handleSignOut} />
+      <Navbar
+       employeeName={employeeName}
+       onSignOut={handleSignOut} 
+       onProfileClick={() => navigate("/profile")}
+       />
 
       <div className="shell-body">
         <Sidebar activePage={activePage} onNavigate={handleNavigate} />
+
         <main className="shell-main">
           <Outlet />
         </main>

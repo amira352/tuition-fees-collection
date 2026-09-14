@@ -12,12 +12,10 @@ import SearchPage from "./pages/SearchPage";
 import FeePaymentPage from "./pages/FeePaymentPage";
 import ReceiptPage from "./pages/ReceiptPage";
 import ReceiptsPage from "./pages/ReceiptsPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
+import TransactionHistoryPage from "./pages/TransactionHistoryPage";
 import Admin from "./pages/Admin";
 import InstitutionsManagement from "./pages/InstitutionsManagement";
 import BackOfficeManagement from "./pages/BackOfficeManagement";
-import InstitutionPayments from "./pages/institution/InstitutionPayments";
-import UploadDues from "./pages/UploadDues";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import TransactionHistoryPage from "./pages/TransactionHistoryPage";
@@ -25,15 +23,39 @@ import FeesManagement from "./pages/institution/FeesManagement";
 import ReportsPage from "./pages/institution/ReportsPage";
 import DiscountsPage from "./pages/institution/DiscountsPage";
 
+// Lazy-loaded pages
 const InstitutionDashboard = lazy(() =>
-  import("./pages/institution/InstitutionDashboard"),
+  import("./pages/institution/InstitutionDashboard")
+);
+const InstitutionPayments = lazy(() =>
+  import("./pages/institution/InstitutionPayments")
+);
+const InstitutionEppPlans = lazy(() =>
+  import("./pages/institution/InstitutionEppPlans")
 );
 
+// Fallbacks for files that may not exist on all branches
+const FeesManagement = lazy(() =>
+  import("./pages/institution/FeesManagement").catch(() => ({
+    default: () => <ComingSoon />,
+  }))
+);
+const UploadDues = lazy(() =>
+  import("./pages/UploadDues").catch(() => ({
+    default: () => <ComingSoon />,
+  }))
+);
+const ProfilePage = lazy(() =>
+  import("./pages/ProfilePage").catch(() => ({
+    default: () => <ComingSoon />,
+  }))
+);
 
 function Home() {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
+
   return getUser()?.role === "institution" ? (
     <Navigate to="/institution" replace />
   ) : (
@@ -60,6 +82,7 @@ export default function App() {
             }
           />
 
+          {/* Institution Portal */}
           <Route
             path="/institution"
             element={
@@ -72,13 +95,14 @@ export default function App() {
             <Route path="fees" element={<FeesManagement />} />
             <Route path="discounts" element={<DiscountsPage />} />
             <Route path="payments" element={<InstitutionPayments />} />
-            <Route path="epp-plans" element={<ComingSoon />} />
+            <Route path="epp-plans" element={<InstitutionEppPlans />} />
             <Route path="upload-dues" element={<UploadDues />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="notifications" element={<ComingSoon />} />
             <Route path="profile" element={<ComingSoon />} />
           </Route>
 
+          {/* Back-Office Operations & Admin */}
           <Route
             element={
               <ProtectedRoute>
@@ -87,11 +111,13 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/upload-dues" element={<UploadDues />} />
             <Route path="/browse" element={<SearchPage />} />
             <Route path="/payment" element={<FeePaymentPage />} />
             <Route path="/receipt" element={<ReceiptPage />} />
             <Route path="/history" element={<TransactionHistoryPage />} />
             <Route path="/receipts" element={<ReceiptsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
 
             <Route
               path="/admin"
@@ -101,6 +127,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/admin/institutions"
               element={
@@ -109,6 +136,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/admin/back-office"
               element={

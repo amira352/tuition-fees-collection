@@ -6,6 +6,10 @@ import {
 } from "../controllers/institutionFeeUpload.controller.js";
 
 import {
+  getInstitutionEppPlansController
+} from "../controllers/institutionEppPlans.controller.js";
+
+import {
   authenticate
 } from "../middleware/auth.middleware.js";
 
@@ -22,7 +26,7 @@ import {
 } from "../middleware/upload.middleware.js";
 
 import {
-  getInstitutionFeesController
+  getInstitutionFeesController, createInstitutionFeeController, editInstitutionFeeController
 } from "../controllers/institutionFees.controller.js";
 
 
@@ -64,5 +68,28 @@ router.get(
   getInstitutionFeesController
 );
 
+router.post(
+  "/:id/fees",
+  authenticate(),
+  authorizeRoles("institution"),
+  createInstitutionFeeController
+);
+
+router.put(
+  "/:id/fees/:feeId",
+  authenticate(),
+  authorizeRoles("institution"),
+  editInstitutionFeeController
+);
+
+router.get(
+  "/:id/epp-plans",
+
+  authenticate(),
+
+  authorizeRoles("institution", "back_office", "admin"),
+
+  getInstitutionEppPlansController
+);
 
 export default router;
