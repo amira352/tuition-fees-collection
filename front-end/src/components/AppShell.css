@@ -1,3 +1,18 @@
+:root {
+  --cib-navy: #002d62;
+  --cib-navy-700: #083c79;
+  --cib-navy-900: #001f44;
+  --cib-orange: #ff6f00;
+  --cib-blue: #0072ce;
+  --line: #e2e8f0;
+  --muted: #64748b;
+  --field-bg: #f8fafc;
+  --page-bg: #f4f7fb;
+}
+
+/* ==========================================================================
+   APP SHELL LAYOUT
+   ========================================================================== */
 .shell {
   min-height: 100vh;
   display: flex;
@@ -5,18 +20,111 @@
   background: var(--page-bg);
 }
 
+/* Container holding both <Sidebar /> and <main className="shell-main"> */
 .shell-body {
   display: flex;
   flex: 1;
   min-height: 0;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  border-bottom: none;
 }
 
+/* Main scrollable viewport for page routes (<Outlet />) */
 .shell-main {
   flex: 1;
   min-width: 0;
-  overflow: auto;
+  overflow-y: auto;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
+/* ==========================================================================
+   NAVBAR & HEADER STYLES (Used inside Navbar component)
+   ========================================================================== */
+.shell-left {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.shell-brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.shell-brand img {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.shell-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.shell-nav-link {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.shell-nav-link:hover {
+  color: var(--cib-navy);
+  background: var(--field-bg);
+}
+
+.shell-nav-link.active {
+  color: var(--cib-navy);
+  background: #e0f2fe;
+}
+
+.shell-user {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.shell-user-name {
+  max-width: 40vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell-logout {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--cib-navy);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.shell-logout:hover {
+  background: var(--field-bg);
+  border-color: #c6cedb;
+}
+
+/* ==========================================================================
+   RESPONSIVE LAYOUT
+   ========================================================================== */
 @media (max-width: 768px) {
   .shell-body {
     flex-direction: column;
