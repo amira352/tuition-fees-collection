@@ -82,17 +82,10 @@
 .disc-table-panel td small { display: block; margin-top: 0.2rem; color: var(--disc-muted); font-size: 0.7rem; }
 
 .disc-desc-cell { min-width: 320px; max-width: 560px; }
-.disc-desc-title { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; }
-.disc-desc-elig { margin: 0.3rem 0 0; color: var(--disc-ink-soft); font-size: 0.8rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.disc-table-panel tr.is-inactive .disc-desc-elig { color: #8b889b; }
-.disc-link { padding: 0; border: 0; background: none; color: var(--disc-ink); font: inherit; font-size: 0.86rem; font-weight: 700; text-align: left; cursor: pointer; }
+.disc-desc-title { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 0.45rem; }
+.disc-link { padding: 0; border: 0; background: none; color: var(--disc-ink); font: inherit; font-size: 0.84rem; font-weight: 600; line-height: 1.45; text-align: left; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .disc-link:hover { color: var(--disc-accent); text-decoration: underline; }
 .disc-tag { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 6px; background: #eef4fb; color: var(--disc-accent); font-size: 0.64rem; font-weight: 700; }
-
-.disc-type { display: inline-flex; padding: 0.28rem 0.55rem; border-radius: 7px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
-.disc-type-pay_in_full { background: #eef4fb; color: #245fa9; }
-.disc-type-pay_early { background: #f1eefb; color: #6b4fbb; }
-.disc-type-custom { background: #f3f2f7; color: #5c5a6e; }
 
 .disc-value-cell strong { font-size: 0.95rem; font-weight: 700; color: var(--disc-ink); }
 
@@ -175,17 +168,6 @@
 .disc-adorned input { padding-right: 3.2rem; }
 .disc-adorned span { position: absolute; right: 0.8rem; color: var(--disc-muted); font-size: 0.75rem; font-weight: 700; pointer-events: none; }
 
-.disc-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem; }
-.disc-type-card { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.7rem 0.75rem; border: 1px solid #e8e6f0; border-radius: 10px; background: #fdfdff; font: inherit; text-align: left; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-.disc-type-card strong { color: var(--disc-ink); font-size: 0.8rem; }
-.disc-type-card span { color: var(--disc-muted); font-size: 0.68rem; line-height: 1.35; }
-.disc-type-card:hover { border-color: #cfd6e2; }
-.disc-type-card.is-selected { border-color: var(--disc-accent); background: var(--disc-accent-soft); box-shadow: inset 0 0 0 1px var(--disc-accent); }
-
-.disc-segmented { display: inline-grid; grid-template-columns: 1fr 1fr; min-height: 40px; padding: 3px; border-radius: 10px; background: #f2f1f8; }
-.disc-segmented button { border: 0; border-radius: 8px; background: transparent; color: var(--disc-muted); font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
-.disc-segmented button.is-selected { background: #fff; color: var(--disc-ink); box-shadow: 0 1px 4px rgba(11, 27, 69, 0.12); }
-
 .disc-checks { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 .disc-check { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.7rem; border: 1px solid #e8e6f0; border-radius: 99px; background: #fdfdff; color: var(--disc-ink-soft); font-size: 0.76rem; font-weight: 600; cursor: pointer; user-select: none; }
 .disc-check input { margin: 0; accent-color: var(--disc-accent); }
@@ -209,8 +191,6 @@
 .disc-detail-list > div { display: grid; grid-template-columns: 120px 1fr; gap: 1rem; padding: 0.7rem 0; border-bottom: 1px solid var(--disc-line); }
 .disc-detail-list dt { color: var(--disc-muted); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
 .disc-detail-list dd { margin: 0; font-size: 0.85rem; line-height: 1.5; }
-.disc-detail-notes { white-space: pre-line; color: var(--disc-ink-soft); }
-.disc-detail-notes em { color: var(--disc-muted); }
 
 /* ── Toast ──────────────────────────────────────────────────────────── */
 
@@ -243,7 +223,6 @@
   .disc-head > .disc-primary-btn { width: 100%; }
   .disc-toolbar { grid-template-columns: 1fr; }
   .disc-search { grid-column: auto; }
-  .disc-type-grid { grid-template-columns: 1fr; }
   .disc-form-grid { grid-template-columns: 1fr; }
   .disc-drawer { padding: 1.1rem; }
   .disc-detail-list > div { grid-template-columns: 1fr; gap: 0.2rem; }
