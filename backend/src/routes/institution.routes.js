@@ -6,6 +6,10 @@ import {
 } from "../controllers/institutionFeeUpload.controller.js";
 
 import {
+  getInstitutionEppPlansController
+} from "../controllers/institutionEppPlans.controller.js";
+
+import {
   authenticate
 } from "../middleware/auth.middleware.js";
 
@@ -78,5 +82,14 @@ router.put(
   editInstitutionFeeController
 );
 
+router.get(
+  "/:id/epp-plans",
+
+  authenticate(),
+
+  authorizeRoles("institution", "back_office", "admin"),
+
+  getInstitutionEppPlansController
+);
 
 export default router;

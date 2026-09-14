@@ -1,5 +1,5 @@
 import { getEppQuotes, createEppPlan } from "./bank.client.js";
-import { createEppPlanRecord, findEppPlanByPaymentId } from "../repositories/eppPlan.repository.js";
+import { createEppPlanRecord, findEppPlanByPaymentId, getInstitutionEppPlans } from "../repositories/eppPlan.repository.js";
 import { findPaymentById } from "../repositories/payment.repository.js";
 
 // BE-3 item 7: read from config, not a hardcoded whitelist — CIB publishes
@@ -28,6 +28,14 @@ export const quoteInstalments = async (amount) => {
  *    actually settled, which is exactly the bug this closes.
  *  - Does NOT check "already has a plan" — that needs a database read,
  *    so it stays in the async function below.
+ *
+ * NOTE: "completed" is this system's real success status for a payment
+ * (confirmed directly from settle_payment's own SQL — it sets
+ * status = 'completed', never 'settled' or 'captured'). An earlier version
+ * of this check used the wrong status names, carried over by mistake from
+ * a different backend, and would have rejected every genuinely successful
+ * payment. Found and fixed by actually running a real card payment through
+ * and reading the real error it produced.
  */
 export const assertEppEligible = (payment, tenorMonths) => {
   const allowedTenors = getAllowedTenors();
@@ -47,9 +55,9 @@ export const assertEppEligible = (payment, tenorMonths) => {
     throw error;
   }
 
-  if (payment.status !== "settled" && payment.status !== "captured") {
+  if (payment.status !== "completed") {
     const error = new Error(
-      `Payment must be settled before it can be converted to instalments (currently ${payment.status})`
+      `Payment must be completed before it can be converted to instalments (currently ${payment.status})`
     );
     error.statusCode = 409;
     error.code = "PAYMENT_NOT_CONVERTIBLE";
@@ -115,4 +123,10 @@ export const createInstalmentPlan = async ({ paymentId, tenorMonths }) => {
     startDate: result.first_due_date,
     annualRate: result.annual_rate
   });
+};
+
+// ADDED — GET /api/institutions/:id/epp-plans
+export const listInstitutionEppPlans = async (institutionId) => {
+  const plans = await getInstitutionEppPlans(institutionId);
+  return { institution_id: institutionId, plans };
 };
