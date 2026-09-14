@@ -11,7 +11,7 @@
  * description   string   the whole rule in prose: kind of discount, who
  *                        qualifies and by when, approval memo, policy ref
  * value         number   percent (0–100)
- * feeTypes      string[] fee types the rule applies to; [] means "All Fees"
+ * scope         "fee"    always "fee"; sent on create, not editable
  * startDate     "YYYY-MM-DD"
  * endDate       "YYYY-MM-DD" | ""  (empty = open-ended)
  * stackable     boolean  may be combined with other discounts
@@ -20,8 +20,6 @@
  *                        > 0 blocks hard delete so history stays intact
  * createdAt / updatedAt  ISO timestamps
  */
-
-export const FEE_TYPES = ["Tuition", "Bus Transport", "Registration", "Books & Lab", "Activities"];
 
 export const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
@@ -35,10 +33,10 @@ export const mockDiscounts = [
     id: 1,
     description: "Full Payment – 10%. Parent settles 100% of annual tuition in a single payment before 15 Sept 2026. Approved by the Finance Committee, memo FC-2026-04.",
     value: 10,
-    feeTypes: ["Tuition"],
     startDate: "2026-07-01",
     endDate: "2026-09-15",
     stackable: false,
+    scope: "fee",
     status: "active",
     appliedCount: 214,
     createdAt: "2026-06-20T10:12:00.000Z",
@@ -48,10 +46,10 @@ export const mockDiscounts = [
     id: 2,
     description: "Early Bird – 5%. Any tuition instalment paid at least 30 days before its due date. Renewed every academic year; superseded by Full Payment when both match.",
     value: 5,
-    feeTypes: ["Tuition", "Registration"],
     startDate: "2026-06-01",
     endDate: "2026-12-31",
     stackable: true,
+    scope: "fee",
     status: "active",
     appliedCount: 87,
     createdAt: "2026-05-28T08:00:00.000Z",
@@ -61,10 +59,10 @@ export const mockDiscounts = [
     id: 3,
     description: "Sibling Discount – 15%. Second and subsequent enrolled sibling, verified by the Registrar office. Board policy P-11.",
     value: 15,
-    feeTypes: [],
     startDate: "2026-01-01",
     endDate: "",
     stackable: true,
+    scope: "fee",
     status: "active",
     appliedCount: 142,
     createdAt: "2025-12-15T11:30:00.000Z",
@@ -74,10 +72,10 @@ export const mockDiscounts = [
     id: 4,
     description: "Bus Route Launch – 12%. First-time bus subscribers on routes E1–E4 during the Fall 2026 term. Marketing-funded; budget owner: Transport Office.",
     value: 12,
-    feeTypes: ["Bus Transport"],
     startDate: "2026-09-01",
     endDate: "2026-10-31",
     stackable: false,
+    scope: "fee",
     status: "active",
     appliedCount: 0,
     createdAt: "2026-08-25T13:05:00.000Z",
@@ -87,10 +85,10 @@ export const mockDiscounts = [
     id: 5,
     description: "Staff Children – 25%. Children of full-time employees with an active HR contract on the invoice date. Turned off pending HR policy revision, ticket HR-3382.",
     value: 25,
-    feeTypes: ["Tuition"],
     startDate: "2025-09-01",
     endDate: "",
     stackable: false,
+    scope: "fee",
     status: "inactive",
     appliedCount: 38,
     createdAt: "2025-08-19T09:45:00.000Z",
@@ -100,10 +98,10 @@ export const mockDiscounts = [
     id: 6,
     description: "Spring Early Settlement – 5%. Spring 2027 tuition paid in full before 20 Dec 2026. Draft; values to be confirmed by Finance before the December board meeting.",
     value: 5,
-    feeTypes: ["Tuition"],
     startDate: "2026-11-15",
     endDate: "2026-12-20",
     stackable: false,
+    scope: "fee",
     status: "inactive",
     appliedCount: 0,
     createdAt: now,
@@ -117,7 +115,6 @@ export function emptyDiscountForm() {
   return {
     description: "",
     value: "",
-    feeTypes: [],
     startDate: "",
     endDate: "",
     stackable: false,
@@ -129,7 +126,6 @@ export function ruleToForm(rule) {
   return {
     description: rule.description,
     value: String(rule.value),
-    feeTypes: [...rule.feeTypes],
     startDate: rule.startDate,
     endDate: rule.endDate,
     stackable: rule.stackable,
@@ -161,8 +157,8 @@ export function formToRule(form, base = {}) {
     createdAt: base.createdAt ?? timestamp,
     appliedCount: base.appliedCount ?? 0,
     description: form.description.trim(),
+    scope: "fee",
     value: Number(form.value),
-    feeTypes: [...form.feeTypes],
     startDate: form.startDate,
     endDate: form.endDate,
     stackable: Boolean(form.stackable),
