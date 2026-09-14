@@ -19,7 +19,8 @@ import BackOfficeManagement from "./pages/BackOfficeManagement";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import ReportsPage from "./pages/institution/ReportsPage";
-import DiscountsPage from "./pages/institution/DiscountsPage";
+// Discounts page is hidden for now. Re-enable by restoring this import and its route below.
+// import DiscountsPage from "./pages/institution/DiscountsPage";
 
 // Lazy-loaded pages
 const InstitutionDashboard = lazy(() =>
@@ -91,7 +92,7 @@ export default function App() {
           >
             <Route index element={<InstitutionDashboard />} />
             <Route path="fees" element={<FeesManagement />} />
-            <Route path="discounts" element={<DiscountsPage />} />
+            {/* <Route path="discounts" element={<DiscountsPage />} /> */}
             <Route path="payments" element={<InstitutionPayments />} />
             <Route path="epp-plans" element={<InstitutionEppPlans />} />
             <Route path="upload-dues" element={<UploadDues />} />
