@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatEGP } from "../../lib/format";
 import { Icon } from "./icons";
 import {
-  CURRENCY,
   FEE_TYPES,
   LIFECYCLE_LABELS,
   STATUS_OPTIONS,
@@ -160,20 +158,12 @@ function DiscountDrawer({ mode, rule, onSave, onClose }) {
 
           <section className="disc-form-section">
             <h3>2. Value</h3>
-            <div className="disc-form-grid">
-              <Field label="Discount percentage" htmlFor="disc-value" error={errors.value}>
-                <div className="disc-adorned">
-                  <input id="disc-value" type="number" inputMode="decimal" min="0" max={100} step="0.5" value={form.value} placeholder="10" onChange={(event) => set({ value: event.target.value })} />
-                  <span>%</span>
-                </div>
-              </Field>
-              <Field label="Maximum cap (optional)" htmlFor="disc-cap" error={errors.maxCap} hint="Limits how much can be taken off a single fee.">
-                <div className="disc-adorned">
-                  <input id="disc-cap" type="number" inputMode="numeric" min="0" step="1" value={form.maxCap} placeholder="e.g. 6000" onChange={(event) => set({ maxCap: event.target.value })} />
-                  <span>{CURRENCY}</span>
-                </div>
-              </Field>
-            </div>
+            <Field label="Discount percentage" htmlFor="disc-value" error={errors.value}>
+              <div className="disc-adorned">
+                <input id="disc-value" type="number" inputMode="decimal" min="0" max={100} step="0.5" value={form.value} placeholder="10" onChange={(event) => set({ value: event.target.value })} />
+                <span>%</span>
+              </div>
+            </Field>
           </section>
 
           <section className="disc-form-section">
@@ -248,7 +238,7 @@ function DetailDrawer({ rule, onEdit, onClose }) {
 
         <div className="disc-detail-hero">
           <strong>{valueLabel(rule)}</strong>
-          <span>{rule.maxCap ? `capped at ${formatEGP(rule.maxCap)}` : "no cap"}</span>
+          <span>off each eligible fee</span>
           <StatusPill lifecycle={lifecycle} />
         </div>
 
@@ -417,7 +407,6 @@ export default function DiscountsPage() {
                     </td>
                     <td className="disc-value-cell">
                       <strong>{valueLabel(rule)}</strong>
-                      {rule.maxCap && <small>cap {formatEGP(rule.maxCap)}</small>}
                     </td>
                     <td>
                       <StatusPill lifecycle={lifecycle} />
