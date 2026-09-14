@@ -6,6 +6,7 @@ import bankRoutes from "./routes/searchByid.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import receiptRoutes from "./routes/receipt.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 import paymentHistoryRoutes from "./routes/paymentHistory.routes.js";
 import eppRoutes from "./routes/epp.routes.js"; // ADDED — BE-3 items 5, 6, 7
 import reportRoutes from "./routes/report.routes.js"; // ADDED — BE-3 item 8
@@ -29,6 +30,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/payments/history", paymentHistoryRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/receipts", receiptRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/api/bank", bankRoutes);
 app.use("/api/institutions", institutionRoutes);
