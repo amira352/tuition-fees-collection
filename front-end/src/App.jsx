@@ -18,8 +18,6 @@ import InstitutionsManagement from "./pages/InstitutionsManagement";
 import BackOfficeManagement from "./pages/BackOfficeManagement";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
-import TransactionHistoryPage from "./pages/TransactionHistoryPage";
-import FeesManagement from "./pages/institution/FeesManagement";
 import ReportsPage from "./pages/institution/ReportsPage";
 import DiscountsPage from "./pages/institution/DiscountsPage";
 
