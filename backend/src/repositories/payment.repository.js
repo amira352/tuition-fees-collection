@@ -56,7 +56,37 @@ export const findTendersByPayment = async (paymentId) => {
 
 // The reason is stored so payment history can say what actually happened.
 // "failed" on its own is no use to whoever has to explain it at the counter.
+//
+// Also releases every fee this payment touched back out of "processing" -
+// otherwise a declined or timed-out payment would leave the fee permanently
+// unpayable, since create_pending_payment refuses to touch a fee that's
+// still marked processing. Released based on the fee's real
+// outstanding_amount, not assumed - a fee this payment PARTLY paid before
+// failing on a later leg still needs the correct partially_paid state, not
+// a blanket reset to unpaid.
 export const markPaymentFailed = async (paymentId, reason) => {
+  const { data: items } = await supabase
+    .from("payment_items")
+    .select("fee_id")
+    .eq("payment_id", paymentId);
+
+  const feeIds = (items || []).map((i) => i.fee_id);
+
+  if (feeIds.length > 0) {
+    const { data: fees } = await supabase
+      .from("fees")
+      .select("id, amount, outstanding_amount, status")
+      .in("id", feeIds)
+      .eq("status", "processing");
+
+    for (const fee of fees || []) {
+      await supabase
+        .from("fees")
+        .update({ status: fee.outstanding_amount >= fee.amount ? "unpaid" : "partially_paid" })
+        .eq("id", fee.id);
+    }
+  }
+
   await supabase
     .from("payment_tenders")
     .update({ status: "failed" })

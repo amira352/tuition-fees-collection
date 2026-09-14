@@ -1,0 +1,3 @@
+.discounts-page { display: flex; flex-direction: column; gap: 1.25rem; color: var(--navy-900); }
+.discounts-heading { display: flex; align-items: center; gap: .85rem; }.discounts-heading h1 { margin: 0; font-size: 1.5rem; }.discounts-heading p { margin: .25rem 0 0; color: var(--muted); font-size: .9rem; }.discounts-icon { display: grid; place-items: center; width: 2.7rem; height: 2.7rem; border-radius: 12px; background: #fff4df; color: #9b6b00; }.discounts-icon svg { width: 1.35rem; }
+.discounts-empty { max-width: 620px; padding: 2rem; border: 1px solid var(--line); border-radius: 12px; background: #fff; }.discounts-empty h2 { margin: 0 0 .5rem; font-size: 1rem; }.discounts-empty p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.6; }
