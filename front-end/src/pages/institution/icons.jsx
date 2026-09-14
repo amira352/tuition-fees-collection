@@ -82,4 +82,28 @@ export const Icon = {
   dotCircle: () => (
     <svg {...S}><circle cx="12" cy="12" r="9" /></svg>
   ),
+  more: () => (
+    <svg {...S}><circle cx="12" cy="5" r="1.4" fill="currentColor" /><circle cx="12" cy="12" r="1.4" fill="currentColor" /><circle cx="12" cy="19" r="1.4" fill="currentColor" /></svg>
+  ),
+  eye: () => (
+    <svg {...S}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="3" /></svg>
+  ),
+  edit: () => (
+    <svg {...S}><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z" /><path d="m13 7 4 4" /></svg>
+  ),
+  power: () => (
+    <svg {...S}><path d="M12 3v9" /><path d="M6.6 6.6a8 8 0 1 0 10.8 0" /></svg>
+  ),
+  trash: () => (
+    <svg {...S}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+  ),
+  info: () => (
+    <svg {...S}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg>
+  ),
+  percent: () => (
+    <svg {...S}><path d="M19 5 5 19" /><circle cx="7" cy="7" r="2.5" /><circle cx="17" cy="17" r="2.5" /></svg>
+  ),
+  layers: () => (
+    <svg {...S}><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /></svg>
+  ),
 };
