@@ -79,3 +79,13 @@
     display: none;
   }
 }
+.navbar-user-btn {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
