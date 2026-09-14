@@ -10,12 +10,6 @@ function feeStatus(status, amount, remaining) {
   return "outstanding";
 }
 
-/** Discount percentage from the API's discount_percentage field, or null when there is none (missing, null, or zero). */
-function discountOf(fee) {
-  const percentage = Number(fee.discount_percentage);
-  return Number.isFinite(percentage) && percentage > 0 ? percentage : null;
-}
-
 function flattenFees(children = []) {
   return children.flatMap((child) => (child.fees || []).map((fee) => {
     const amount = Number(fee.amount || 0);
@@ -31,7 +25,6 @@ function flattenFees(children = []) {
       paid: Math.max(0, amount - remaining),
       remaining,
       currency: fee.currency || "EGP",
-      discountPercentage: discountOf(fee),
       status: feeStatus(fee.status, amount, remaining),
     };
   }));
@@ -147,7 +140,7 @@ export default function FeesManagement() {
 
       <section className="fees-panel fees-table-panel">
         <div className="fees-table-head"><div><h2>Fee Records</h2><span>Keep track of student dues and collection activity.</span></div><strong>{filteredFees.length} records</strong></div>
-        <div className="fees-table-scroll">{isLoading ? <div className="fees-empty"><strong>Loading fee records...</strong></div> : loadError ? <div className="fees-empty"><strong>Fee records could not be loaded</strong><span>Resolve the request error above and refresh the page.</span></div> : <><table><thead><tr><th>Student</th><th>Student Code</th><th>Fee Type</th><th>Period</th><th>Amount</th><th>Discount</th><th>Currency</th><th>Status</th><th>Remaining</th></tr></thead><tbody>{filteredFees.map((fee) => <tr key={fee.id}><td><strong>{fee.student}</strong></td><td>{fee.studentCode}</td><td>{fee.feeType}</td><td>{fee.period}</td><td>{Number(fee.amount).toLocaleString()}</td><td>{fee.discountPercentage == null ? "-" : `${fee.discountPercentage}%`}</td><td>{fee.currency}</td><td><span className={`fees-status fees-status-${fee.status}`}>{statusLabel(fee.status)}</span></td><td>{money(fee.remaining, fee.currency)}</td></tr>)}</tbody></table>{filteredFees.length === 0 && <div className="fees-empty"><strong>No fee records have been added yet</strong><span>New student fee records will appear here.</span></div>}</>}</div>
+        <div className="fees-table-scroll">{isLoading ? <div className="fees-empty"><strong>Loading fee records...</strong></div> : loadError ? <div className="fees-empty"><strong>Fee records could not be loaded</strong><span>Resolve the request error above and refresh the page.</span></div> : <><table><thead><tr><th>Student</th><th>Student Code</th><th>Fee Type</th><th>Period</th><th>Amount</th><th>Currency</th><th>Status</th><th>Remaining</th></tr></thead><tbody>{filteredFees.map((fee) => <tr key={fee.id}><td><strong>{fee.student}</strong></td><td>{fee.studentCode}</td><td>{fee.feeType}</td><td>{fee.period}</td><td>{Number(fee.amount).toLocaleString()}</td><td>{fee.currency}</td><td><span className={`fees-status fees-status-${fee.status}`}>{statusLabel(fee.status)}</span></td><td>{money(fee.remaining, fee.currency)}</td></tr>)}</tbody></table>{filteredFees.length === 0 && <div className="fees-empty"><strong>No fee records have been added yet</strong><span>New student fee records will appear here.</span></div>}</>}</div>
       </section>
 
       {isDrawerOpen && <div className="fees-drawer-backdrop" onClick={() => setIsDrawerOpen(false)}><aside className="fees-drawer" onClick={(event) => event.stopPropagation()}><div className="fees-drawer-head"><div><span className="fees-eyebrow">Institution fees</span><h2>Add Fee</h2></div><button type="button" aria-label="Close add fee drawer" onClick={() => setIsDrawerOpen(false)}>×</button></div><form onSubmit={saveFee}><label htmlFor="student-code">Student Code<input id="student-code" required value={form.studentCode} placeholder="e.g. STU-00231" onChange={(event) => setForm({ ...form, studentCode: event.target.value })} /></label><label>Fee Type<input required value={form.feeType} onChange={(event) => setForm({ ...form, feeType: event.target.value })} /></label><label>Collection Period<input required value={form.period} onChange={(event) => setForm({ ...form, period: event.target.value })} placeholder="e.g. Fall 2026" /></label><div className="fees-form-grid"><label>Amount<input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} /></label><label>Currency<input required maxLength={3} value={form.currency} onChange={(event) => setForm({ ...form, currency: event.target.value.toUpperCase() })} /></label></div>{formError && <div className="fees-alert fees-alert-error">{formError}</div>}<div className="fees-drawer-actions"><button type="button" className="fees-secondary-btn" onClick={() => setIsDrawerOpen(false)}>Cancel</button><button type="submit" className="fees-primary-btn" disabled={isSaving}>{isSaving ? "Saving..." : "Save Fee"}</button></div></form></aside></div>}

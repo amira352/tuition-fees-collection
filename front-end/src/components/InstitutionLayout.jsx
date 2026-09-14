@@ -7,7 +7,8 @@ import "./InstitutionLayout.css";
 const NAV = [
   { to: "/institution", label: "Dashboard", icon: "grid", end: true },
   { to: "/institution/fees", label: "Fees", icon: "receipt" },
-  { to: "/institution/discounts", label: "Discounts", icon: "tag" },
+  // Discounts is hidden for now; restore this entry with its route in App.jsx.
+  // { to: "/institution/discounts", label: "Discounts", icon: "tag" },
   { to: "/institution/payments", label: "Payments", icon: "card" },
   { to: "/institution/epp-plans", label: "EPP Plans", icon: "plan" },
   { to: "/institution/upload-dues", label: "Upload Dues", icon: "upload" },
