@@ -178,72 +178,34 @@ export const editInstitutionFee = async ({
   }
 
 
-  // 3. Calculate the new outstanding amount
-  const oldAmount = Number(existingFee.amount);
-
-  const oldOutstanding =
-    Number(existingFee.outstanding_amount);
-
-  const newAmount = Number(amount);
-
-  /*
-   * Keep the amount already paid by the parent.
-   *
-   * Example:
-   *
-   * Original fee       = 1000
-   * Outstanding        = 600
-   * Already paid       = 400
-   *
-   * New fee amount      = 1200
-   * New outstanding     = 800
-   */
-
-  const amountAlreadyPaid =
-    oldAmount - oldOutstanding;
-
-
-  const newOutstandingAmount =
-    newAmount - amountAlreadyPaid;
-
-
-  if (newOutstandingAmount < 0) {
-    throw badRequest(
-      "The new amount cannot be less than the amount already paid"
+  // 3. Do not allow editing if any payment was made
+  if (
+    Number(existingFee.outstanding_amount) !==
+    Number(existingFee.amount)
+  ) {
+    const error = new Error(
+      "This fee cannot be edited because a payment has already been made"
     );
+
+    error.statusCode = 409;
+    throw error;
   }
 
 
-  // 4. Determine the new status
-  let newStatus = "unpaid";
-
-  if (newOutstandingAmount === 0) {
-    newStatus = "paid";
-  } else if (newOutstandingAmount < newAmount) {
-    newStatus = "partially_paid";
-  }
-
-
-  // -----------------------------------------
-  // 5. Update the fee
-  // -----------------------------------------
-
+  // 4. Update the fee
   const updatedFee =
     await updateInstitutionFee({
       feeId,
       feeType: feeType.trim(),
       period: period.trim(),
-      amount: newAmount,
+      amount: Number(amount),
       currency: currency.trim().toUpperCase(),
-      outstandingAmount: newOutstandingAmount,
-      status: newStatus
+      outstandingAmount: Number(amount),
+      status: "unpaid"
     });
 
 
-  // -----------------------------------------
-  // 6. Return result
-  // -----------------------------------------
-
+  // 5. Return result
   return {
     message: "Fee updated successfully",
 
