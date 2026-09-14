@@ -40,6 +40,26 @@ const RECEIPT_FIELDS = `
   bank_employees:issued_by ( full_name, branch )
 `;
 
+// Lighter than RECEIPT_FIELDS. The search result is a table, not a printed
+// receipt, so it does not need the bank references or who issued it - the
+// counter picks a row and opens the receipt, which already has all that.
+const RECEIPT_SUMMARY_FIELDS = `
+  receipt_number,
+  issued_at,
+  payments!inner (
+    id,
+    parent_id,
+    amount,
+    created_at,
+    payment_items (
+      amount,
+      fees ( fee_type, period,
+             children ( name, student_code, institutions ( name ) ) )
+    ),
+    payment_tenders ( method )
+  )
+`;
+
 export const findReceiptByPaymentId = async (paymentId) => {
   const { data, error } = await supabase
     .from("receipts")
@@ -66,4 +86,26 @@ export const findReceiptByNumber = async (receiptNumber) => {
   }
 
   return data;
+};
+
+// !inner on payments is what makes the filter below actually filter. Without
+// it PostgREST still returns every receipt in the table and simply nulls out
+// the payments that did not match - so you get the whole table back and think
+// the query worked.
+export const findReceiptsByParentId = async (
+  parentId,
+  { limit, offset }
+) => {
+  const { data, error, count } = await supabase
+    .from("receipts")
+    .select(RECEIPT_SUMMARY_FIELDS, { count: "exact" })
+    .eq("payments.parent_id", parentId)
+    .order("issued_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { rows: data || [], total: count || 0 };
 };

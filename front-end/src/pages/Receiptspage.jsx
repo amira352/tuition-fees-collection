@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGet } from "../lib/api";
 import "./shared.css";
@@ -19,21 +19,22 @@ function formatDate(iso) {
 
 export default function ReceiptsPage() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
+  const [nationalId, setNationalId] = useState("");
   const [receipts, setReceipts] = useState([]);
+  const [payerInfo, setPayerInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // 1. Initial load: Retrieve issued receipts from completed settlements
+  // 1. Initial load: Retrieve recent settled payments that generated receipts
   useEffect(() => {
     let isMounted = true;
 
-    async function loadIssuedReceipts() {
+    async function loadInitialReceipts() {
       setIsLoading(true);
       setErrorMessage("");
       try {
-        // Retrieve completed payments that generated receipts
         const data = await apiGet("/payments/history?status=completed&limit=50");
         const payments = data?.payments || [];
 
@@ -45,24 +46,14 @@ export default function ReceiptsPage() {
               return {
                 receiptNumber: p.receipt_number,
                 paymentId: p.payment_id,
-                studentName: primaryLine.student || "Multiple Students",
-                studentCode: primaryLine.student_code,
-                institution: primaryLine.institution || "—",
+                students: primaryLine.student ? [primaryLine.student] : [],
+                institutions: primaryLine.institution ? [primaryLine.institution] : [],
                 amount: p.amount,
                 currency: p.currency || "EGP",
                 date: p.date,
                 payer: p.payer,
-                method: p.paid_from?.[0]?.method || p.payment_type || "card",
-                invoices: (p.lines || []).map((l, i) => ({
-                  id: `line-${i}`,
-                  studentName: l.student,
-                  school: l.institution,
-                  feeCategory: l.fee_type,
-                  academicTerm: l.period,
-                  amount: l.amount,
-                  currency: p.currency || "EGP",
-                })),
-                raw: p,
+                methods: p.paid_from?.map((t) => t.method) || [p.payment_type || "card"],
+                lines: p.lines || [],
               };
             });
 
@@ -70,115 +61,147 @@ export default function ReceiptsPage() {
         }
       } catch (err) {
         if (isMounted) {
-          setErrorMessage(err.message || "Failed to load receipts list.");
+          setErrorMessage(err.message || "Failed to load receipts archive.");
         }
       } finally {
         if (isMounted) setIsLoading(false);
       }
     }
 
-    loadIssuedReceipts();
+    loadInitialReceipts();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  // 2. Direct Search Handler (Searches list or queries GET /api/receipts/:receiptNumber directly)
-  async function handleSearch(event) {
-    event.preventDefault();
-    const cleanQuery = query.trim();
-    if (!cleanQuery) return;
+ // 2. Search Handler: Strictly 14-digit National ID lookup
+   async function handleSearch(event) {
+     event.preventDefault();
+     const cleanId = nationalId.trim();
 
-    setIsSearching(true);
-    setErrorMessage("");
+     if (!/^\d{14}$/.test(cleanId)) {
+       setErrorMessage("National ID must contain exactly 14 numeric digits.");
+       return;
+     }
 
-    try {
-      // If the query looks like a receipt number (starts with RC-), query backend directly
-      if (cleanQuery.toUpperCase().startsWith("RC-")) {
-        try {
-          const res = await apiGet(`/receipts/${cleanQuery.toUpperCase()}`);
-          if (res?.receipt) {
-            const r = res.receipt;
-            const formatted = {
-              receiptNumber: r.receipt_number,
-              paymentId: r.payment_id,
-              studentName: r.lines?.[0]?.student || "Student",
-              institution: r.lines?.[0]?.institution || "—",
-              amount: r.total,
-              currency: r.currency || "EGP",
-              date: r.paid_on || r.issued_at,
-              payer: r.payer,
-              method: r.paid_from?.[0]?.method || "card",
-              invoices: (r.lines || []).map((l, i) => ({
-                id: `line-${i}`,
-                studentName: l.student,
-                school: l.institution,
-                feeCategory: l.fee_type,
-                academicTerm: l.period,
-                amount: l.paid,
-                currency: r.currency || "EGP",
-              })),
-            };
+     setIsSearching(true);
+     setErrorMessage("");
+     setHasSearched(true);
 
-            setReceipts((prev) => [
-              formatted,
-              ...prev.filter((item) => item.receiptNumber !== formatted.receiptNumber),
-            ]);
-            setIsSearching(false);
-            return;
-          }
-        } catch {
-          // If not found by direct ID, continue to client-side filter
-        }
-      }
-    } finally {
-      setIsSearching(false);
+     try {
+       let res = null;
+       let lastErr = null;
+
+       // Try the 3 common ways this route is mounted across branches:
+       const candidatePaths = [
+         `/bank/receipts?nationalId=${cleanId}`,
+         `/receipts/search?nationalId=${cleanId}`,
+         `/receipts?nationalId=${cleanId}`,
+       ];
+
+       for (const path of candidatePaths) {
+         try {
+           res = await apiGet(path);
+           if (res) break; // Found it!
+         } catch (e) {
+           lastErr = e;
+           // If it's a 404 route-not-found, try the next candidate
+           if (e.status === 404 && (e.message?.includes("Cannot GET") || !e.code)) {
+             continue;
+           }
+           // If it's a real backend business error (e.g. 404 "No parent is registered..."), break and throw it
+           throw e;
+         }
+       }
+
+       if (!res && lastErr) {
+         throw lastErr;
+       }
+
+       if (res?.receipts) {
+         setPayerInfo(res.payer || null);
+
+         const mapped = res.receipts.map((r) => ({
+           receiptNumber: r.receipt_number,
+           paymentId: r.payment_id,
+           students: r.students || (r.lines || []).map((l) => l.student).filter(Boolean),
+           institutions: r.institutions || (r.lines || []).map((l) => l.institution).filter(Boolean),
+           amount: r.total,
+           currency: r.currency || "EGP",
+           date: r.issued_at || r.paid_on,
+           payer: res.payer?.name || null,
+           methods: r.methods || (r.paid_from || []).map((t) => t.method),
+           lines: r.lines || [],
+         }));
+
+         setReceipts(mapped);
+
+         if (mapped.length === 0) {
+           setErrorMessage("No receipts were found for this National ID.");
+         }
+       } else {
+         setReceipts([]);
+         setErrorMessage("No receipts were found for this National ID.");
+       }
+     } catch (err) {
+       setPayerInfo(null);
+       setReceipts([]);
+       setErrorMessage(err.message || "No parent registered with that National ID.");
+     } finally {
+       setIsSearching(false);
+     }
+
     }
-  }
 
-  // 3. Client-side filter across receipt number, payer, student, or school
-  const filtered = useMemo(() => {
-    if (!query.trim()) return receipts;
-    const q = query.trim().toLowerCase();
-    return receipts.filter(
-      (r) =>
-        r.receiptNumber.toLowerCase().includes(q) ||
-        r.studentName.toLowerCase().includes(q) ||
-        (r.payer && r.payer.toLowerCase().includes(q)) ||
-        (r.institution && r.institution.toLowerCase().includes(q))
-    );
-  }, [query, receipts]);
+  function handleReset() {
+    setNationalId("");
+    setPayerInfo(null);
+    setErrorMessage("");
+    setHasSearched(false);
+
+    apiGet("/payments/history?status=completed&limit=50")
+      .then((data) => {
+        const mapped = (data?.payments || [])
+          .filter((p) => p.receipt_number)
+          .map((p) => ({
+            receiptNumber: p.receipt_number,
+            paymentId: p.payment_id,
+            students: p.lines?.[0]?.student ? [p.lines[0].student] : [],
+            institutions: p.lines?.[0]?.institution ? [p.lines[0].institution] : [],
+            amount: p.amount,
+            currency: p.currency || "EGP",
+            date: p.date,
+            payer: p.payer,
+            methods: p.paid_from?.map((t) => t.method) || [p.payment_type || "card"],
+            lines: p.lines || [],
+          }));
+        setReceipts(mapped);
+      })
+      .catch(() => {});
+  }
 
   function handleView(r) {
     navigate("/receipt", {
       state: {
         receipt: {
           receipt_number: r.receiptNumber,
-          receiptNumber: r.receiptNumber,
           paymentId: r.paymentId,
-          payer: r.payer,
-          institution: r.institution,
-          method: r.method,
+          payer: r.payer || payerInfo?.name,
+          institution: r.institutions?.join(", ") || "—",
+          method: r.methods?.[0] || "Card",
           total: r.amount,
           amountPaid: r.amount,
           amountCurrency: r.currency,
           processedAt: r.date,
           paid_on: r.date,
-          invoices: r.invoices,
-          lines: (r.invoices || []).map((inv) => ({
-            student: inv.studentName,
-            institution: inv.school,
-            fee_type: inv.feeCategory,
-            period: inv.academicTerm,
-            paid: inv.amount,
-          })),
+          lines: r.lines || [],
         },
       },
     });
   }
 
-  function handleDownload(r) {
+  function handlePrint(r) {
     handleView(r);
     setTimeout(() => {
       window.print();
@@ -187,30 +210,88 @@ export default function ReceiptsPage() {
 
   return (
     <div className="page">
-      <h1 className="page-title">Receipts</h1>
-      <p className="page-subtitle">Search, view, and print generated payment receipts.</p>
+      <h1 className="page-title">Receipts Archive</h1>
+      <p className="page-subtitle">
+        Search, view, and verify official payment receipts by Parent National ID.
+      </p>
 
-      {/* Search Header */}
+      {/* National ID Only Search Form */}
       <form className="card search-card" onSubmit={handleSearch}>
-        <label className="field-label" htmlFor="receipt-search-input">
-          Search by receipt number, student name, or institution
-        </label>
-        <div className="search-row">
-          <input
-            id="receipt-search-input"
-            type="text"
-            className="field-input"
-            placeholder="eg. RC-8842910 or Student Name"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <button type="submit" className="btn" disabled={isSearching || isLoading}>
-            {isSearching ? "Searching…" : "Search"}
-          </button>
+        <div className="search-field">
+          <label className="field-label" htmlFor="receipt-national-id">
+            Parent National ID Number
+          </label>
+          <div className="search-input-group" style={{ display: "flex", gap: "0.75rem" }}>
+            <input
+              id="receipt-national-id"
+              type="text"
+              inputMode="numeric"
+              className="field-input"
+              placeholder="Enter 14-digit National ID (e.g. 29805150102033)"
+              value={nationalId}
+              maxLength={14}
+              onChange={(e) => setNationalId(e.target.value.replace(/\D/g, ""))}
+              style={{ flex: 1 }}
+            />
+            <button
+              type="submit"
+              className="btn btn-search"
+              disabled={isSearching || nationalId.trim().length !== 14}
+            >
+              {isSearching ? "Searching…" : "Search ID"}
+            </button>
+            {hasSearched && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleReset}
+              >
+                Reset
+              </button>
+            )}
+          </div>
+          <span className="field-hint" style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "0.35rem" }}>
+            Must be exactly 14 digits as registered on the National ID card
+          </span>
         </div>
       </form>
 
-      {/* Content Area */}
+      {/* Verified Parent Banner */}
+      {payerInfo && (
+        <div
+          className="card"
+          style={{
+            marginBottom: "1.25rem",
+            background: "#f8fafc",
+            borderLeft: "4px solid var(--cib-navy, #002d62)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <span style={{ fontSize: "0.8rem", color: "#64748b" }}>Registered Guardian</span>
+            <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#002d62" }}>
+              {payerInfo.name}
+            </div>
+          </div>
+          <span
+            className="role-badge"
+            style={{
+              background: "#e0f2fe",
+              color: "#002d62",
+              padding: "0.25rem 0.65rem",
+              borderRadius: "999px",
+              fontWeight: 700,
+              fontSize: "0.75rem",
+            }}
+          >
+            Verified National ID
+          </span>
+        </div>
+      )}
+
+      {/* Receipts Table */}
       <div className="card">
         {isLoading ? (
           <div className="placeholder-card">Loading receipts archive…</div>
@@ -218,37 +299,43 @@ export default function ReceiptsPage() {
           <div className="placeholder-card" style={{ color: "#dc2626" }}>
             {errorMessage}
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="placeholder-card">No receipts match that search.</div>
+        ) : receipts.length === 0 ? (
+          <div className="placeholder-card">No receipts found.</div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>Receipt No.</th>
-                <th>Student / Payer</th>
+                <th>Guardian / Student</th>
                 <th>Institution</th>
                 <th>Amount</th>
-                <th>Issued Date</th>
+                <th>Payment Method</th>
+                <th>Date Issued</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {receipts.map((r) => (
                 <tr key={r.receiptNumber}>
                   <td className="mono font-bold" style={{ color: "var(--cib-navy, #002d62)" }}>
                     {r.receiptNumber}
                   </td>
                   <td>
-                    <strong>{r.studentName}</strong>
-                    {r.payer && (
+                    <strong>{r.payer || payerInfo?.name || "Verified Customer"}</strong>
+                    {r.students?.length > 0 && (
                       <div style={{ fontSize: "0.78rem", color: "var(--muted, #64748b)" }}>
-                        Payer: {r.payer}
+                        {r.students.join(", ")}
                       </div>
                     )}
                   </td>
-                  <td>{r.institution}</td>
+                  <td>{r.institutions?.join(", ") || "—"}</td>
                   <td style={{ fontWeight: 700 }}>
                     {formatAmount(r.amount, r.currency)}
+                  </td>
+                  <td>
+                    <span style={{ textTransform: "capitalize" }}>
+                      {r.methods?.join(", ") || "Card"}
+                    </span>
                   </td>
                   <td>{formatDate(r.date)}</td>
                   <td>
@@ -263,7 +350,7 @@ export default function ReceiptsPage() {
                       <button
                         type="button"
                         className="btn btn-sm"
-                        onClick={() => handleDownload(r)}
+                        onClick={() => handlePrint(r)}
                       >
                         Print
                       </button>
