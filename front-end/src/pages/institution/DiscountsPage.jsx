@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "./icons";
 import {
-  FEE_TYPES,
   LIFECYCLE_LABELS,
   STATUS_OPTIONS,
   emptyDiscountForm,
@@ -17,10 +16,6 @@ import "./DiscountsPage.css";
 
 function valueLabel(rule) {
   return `${rule.value}%`;
-}
-
-function scopeLabel(feeTypes) {
-  return feeTypes.length === 0 ? "All Fees" : feeTypes.join(", ");
 }
 
 function dateLabel(date) {
@@ -106,7 +101,6 @@ function DiscountDrawer({ mode, rule, onSave, onClose }) {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState(false);
   const isEdit = mode === "edit";
-  const allFees = form.feeTypes.length === 0;
 
   useEffect(() => {
     function onKey(event) { if (event.key === "Escape") onClose(); }
@@ -118,10 +112,6 @@ function DiscountDrawer({ mode, rule, onSave, onClose }) {
     const next = { ...form, ...patch };
     setForm(next);
     if (touched) setErrors(validateDiscountForm(next));
-  }
-
-  function toggleFeeType(feeType) {
-    set({ feeTypes: form.feeTypes.includes(feeType) ? form.feeTypes.filter((f) => f !== feeType) : [...form.feeTypes, feeType] });
   }
 
   function submit(event) {
@@ -167,23 +157,7 @@ function DiscountDrawer({ mode, rule, onSave, onClose }) {
           </section>
 
           <section className="disc-form-section">
-            <h3>3. Scope</h3>
-            <Field label="Applicable fee types">
-              <div className="disc-checks">
-                <label className={`disc-check${allFees ? " is-selected" : ""}`}>
-                  <input type="checkbox" checked={allFees} onChange={() => set({ feeTypes: [] })} /> All Fees
-                </label>
-                {FEE_TYPES.map((feeType) => (
-                  <label key={feeType} className={`disc-check${form.feeTypes.includes(feeType) ? " is-selected" : ""}`}>
-                    <input type="checkbox" checked={form.feeTypes.includes(feeType)} onChange={() => toggleFeeType(feeType)} /> {feeType}
-                  </label>
-                ))}
-              </div>
-            </Field>
-          </section>
-
-          <section className="disc-form-section">
-            <h3>4. Schedule &amp; behaviour</h3>
+            <h3>3. Schedule &amp; behaviour</h3>
             <div className="disc-form-grid">
               <Field label="Start date" htmlFor="disc-start" error={errors.startDate}>
                 <input id="disc-start" type="date" value={form.startDate} onChange={(event) => set({ startDate: event.target.value })} />
@@ -243,7 +217,6 @@ function DetailDrawer({ rule, onEdit, onClose }) {
         </div>
 
         <dl className="disc-detail-list">
-          <div><dt>Applies to</dt><dd>{scopeLabel(rule.feeTypes)}</dd></div>
           <div><dt>Valid</dt><dd>{dateLabel(rule.startDate)} → {dateLabel(rule.endDate)}</dd></div>
           <div><dt>Stackable</dt><dd>{rule.stackable ? "Yes, combines with other discounts" : "No, exclusive"}</dd></div>
           <div><dt>Applied</dt><dd>{rule.appliedCount === 0 ? "Not applied to any payment yet" : `${rule.appliedCount.toLocaleString()} payments`}</dd></div>
@@ -285,7 +258,7 @@ let nextId = Math.max(...mockDiscounts.map((rule) => rule.id)) + 1;
 
 export default function DiscountsPage() {
   // Local mock store. Swap the initializer for a service call when the API lands.
-  const [discounts, setDiscounts] = useState(() => mockDiscounts.map((rule) => ({ ...rule, feeTypes: [...rule.feeTypes] })));
+  const [discounts, setDiscounts] = useState(() => mockDiscounts.map((rule) => ({ ...rule })));
   const [filters, setFilters] = useState({ keyword: "", status: "" });
   const [panel, setPanel] = useState(null); // { kind: "add" | "edit" | "view", rule? }
   const [toast, setToast] = useState(null);
@@ -298,7 +271,7 @@ export default function DiscountsPage() {
     return discounts
       .map((rule) => ({ rule, lifecycle: ruleLifecycle(rule, today) }))
       .filter(({ rule }) => {
-        const matchesKeyword = !keyword || [rule.description, scopeLabel(rule.feeTypes)].some((text) => text.toLowerCase().includes(keyword));
+        const matchesKeyword = !keyword || rule.description.toLowerCase().includes(keyword);
         const matchesStatus = !filters.status || rule.status === filters.status;
         return matchesKeyword && matchesStatus;
       });
@@ -371,7 +344,7 @@ export default function DiscountsPage() {
       <div className="disc-panel disc-toolbar">
         <label className="disc-search">
           <span className="disc-label-text">Search</span>
-          <span className="disc-input-wrap"><Icon.search /><input value={filters.keyword} placeholder="Description, fee type…" onChange={(event) => setFilters({ ...filters, keyword: event.target.value })} /></span>
+          <span className="disc-input-wrap"><Icon.search /><input value={filters.keyword} placeholder="Search descriptions…" onChange={(event) => setFilters({ ...filters, keyword: event.target.value })} /></span>
         </label>
         <label>
           <span className="disc-label-text">Status</span>
@@ -403,7 +376,7 @@ export default function DiscountsPage() {
                         <button type="button" className="disc-link" onClick={() => openView(rule)}>{rule.description}</button>
                         {rule.stackable && <span className="disc-tag">Stackable</span>}
                       </div>
-                      <small>{scopeLabel(rule.feeTypes)} · {dateLabel(rule.startDate)} → {dateLabel(rule.endDate)}</small>
+                      <small>{dateLabel(rule.startDate)} → {dateLabel(rule.endDate)}</small>
                     </td>
                     <td className="disc-value-cell">
                       <strong>{valueLabel(rule)}</strong>
