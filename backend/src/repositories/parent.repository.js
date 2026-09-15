@@ -48,7 +48,8 @@ export const getParentChildrenWithFees = async (
         status
       )
     `)
-    .eq("parent_id", parentId);
+    .eq("parent_id", parentId)
+    .eq("is_active", true);
 
   if (error) {
     throw new Error(error.message);

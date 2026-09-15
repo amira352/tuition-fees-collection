@@ -26,8 +26,12 @@ import {
 } from "../middleware/upload.middleware.js";
 
 import {
-  getInstitutionFeesController, createInstitutionFeeController, editInstitutionFeeController
+  getInstitutionFeesController, createInstitutionFeeController, editInstitutionFeeController, deleteInstitutionFeeController
 } from "../controllers/institutionFees.controller.js";
+
+import {
+  deactivateChildController
+} from "../controllers/children.controller.js";
 
 
 const router = express.Router();
@@ -65,6 +69,7 @@ router.get(
   "/:id/fees",
   authenticate(),
   authorizeRoles("institution"),
+  authorizeInstitutionAccess,
   getInstitutionFeesController
 );
 
@@ -72,6 +77,7 @@ router.post(
   "/:id/fees",
   authenticate(),
   authorizeRoles("institution"),
+  authorizeInstitutionAccess,
   createInstitutionFeeController
 );
 
@@ -79,7 +85,24 @@ router.put(
   "/:id/fees/:feeId",
   authenticate(),
   authorizeRoles("institution"),
+  authorizeInstitutionAccess,
   editInstitutionFeeController
+);
+
+router.delete(
+  "/:id/fees/:feeId",
+  authenticate(),
+  authorizeRoles("institution"),
+  authorizeInstitutionAccess,
+  deleteInstitutionFeeController
+);
+
+router.put(
+  "/:id/children/:childId/deactivate",
+  authenticate(),
+  authorizeRoles("institution"),
+  authorizeInstitutionAccess,
+  deactivateChildController
 );
 
 router.get(
