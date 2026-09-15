@@ -1,4 +1,4 @@
-import { getInstitutionFees, createFeeForStudent, findFeeForInstitution, updateInstitutionFee }
+import { getInstitutionFees, createFeeForStudent, findFeeForInstitution, updateInstitutionFee, deleteFeeById }
   from "../repositories/fee.repository.js";
 
 import {
@@ -216,5 +216,59 @@ export const editInstitutionFee = async ({
     },
 
     fee: updatedFee
+  };
+};
+
+//delete fee
+export const deleteInstitutionFee = async ({
+  institutionId,
+  feeId
+}) => {
+
+  // 1. Find the fee
+  const existingFee =
+    await findFeeForInstitution({
+      feeId,
+      institutionId
+    });
+
+  if (!existingFee) {
+    throw notFound(
+      "Fee not found for this institution"
+    );
+  }
+
+  // 2. Do not allow deleting if any payment was made
+  if (
+    Number(existingFee.outstanding_amount) !==
+    Number(existingFee.amount)
+  ) {
+    const error = new Error(
+      "This fee cannot be deleted because a payment has already been made"
+    );
+
+    error.statusCode = 409;
+    throw error;
+  }
+
+  // 3. Delete the fee
+  await deleteFeeById(feeId);
+
+  // 4. Return result
+  return {
+    message: "Fee deleted successfully",
+
+    student: {
+      id: existingFee.children.id,
+      name: existingFee.children.name,
+      student_code: existingFee.children.student_code
+    },
+
+    deletedFee: {
+      id: existingFee.id,
+      fee_type: existingFee.fee_type,
+      period: existingFee.period,
+      amount: existingFee.amount
+    }
   };
 };
