@@ -153,6 +153,19 @@ export const findFeeForInstitution = async ({
 };
 
 
+// Delete the fee
+export const deleteFeeById = async (feeId) => {
+  const { error } = await supabase
+    .from("fees")
+    .delete()
+    .eq("id", feeId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+};
+
+
 // Update the fee
 export const updateInstitutionFee = async ({
   feeId,

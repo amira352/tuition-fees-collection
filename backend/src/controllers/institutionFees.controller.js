@@ -1,5 +1,5 @@
 import {
-  getInstitutionFeesService, createInstitutionFee, editInstitutionFee
+  getInstitutionFeesService, createInstitutionFee, editInstitutionFee, deleteInstitutionFee
 } from "../services/institutionFees.service.js";
 
 
@@ -91,6 +91,32 @@ export const editInstitutionFeeController = async (
         period,
         amount,
         currency
+      });
+
+
+    return res.status(200).json(result);
+
+  } catch (error) {
+
+    next(error);
+
+  }
+};
+
+export const deleteInstitutionFeeController = async (
+  req,
+  res,
+  next
+) => {
+
+  try {
+
+    const { id, feeId } = req.params;
+
+    const result =
+      await deleteInstitutionFee({
+        institutionId: id,
+        feeId
       });
 
 
