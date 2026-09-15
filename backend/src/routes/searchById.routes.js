@@ -23,7 +23,7 @@ router.post(
 
   authenticate(),
 
-  authorizeRoles("back_office"),
+  authorizeRoles("back_office", "admin"),
 
   searchParent
 );
