@@ -14,30 +14,77 @@ const bankClient = axios.create({
 /**
  * Authorises money from one funding source for one payment leg.
  *
- * IMPORTANT for the team: this only receives {accountRef, amount}, per the
- * current tender shape in payment.service.js. wit-mock-services has no
- * same-bank "debit an account" endpoint at all — only MOI validation, card
- * payments, and EPP — so a plain account debit is honestly simulated below,
- * the same way a real CIB account-debit endpoint doesn't exist yet to call.
- *
- * Real card charging needs far more than {accountRef, amount} — a full
- * card number, holder name, expiry, CVV, the customer's national ID, and
- * an idempotency key — none of which fit in the current tender shape.
- * See authoriseCard() below: it's ready and calls the real mock, but
- * nothing wires into it yet, because that needs payment.service.js's
- * tender validation extended to carry a `card` object first. That's a
- * decision for whoever owns that file, not something to guess at here.
+ * Calls the bank's real back-office payment service (mock branch
+ * feature/backoffice-customer-lookup) - the same endpoint whether accountRef
+ * is an account_id or a card_id from getCustomerAccounts. source_id is
+ * generic on the bank's side; it doesn't distinguish accounts from cards on
+ * file, so this one function covers both. No card number or CVV is ever
+ * collected here - only an id the back office already has from a lookup.
  */
 export const authoriseFromAccount = async ({ accountRef, amount }) => {
   if (accountRef === "DECLINE") {
     return { approved: false, reason: "Insufficient funds" };
   }
 
-  // --- SIMULATED — no real same-bank account-debit endpoint exists yet ---
-  return {
-    approved: true,
-    providerRef: `SIMULATED-ACCT-${Date.now()}-${Math.floor(Math.random() * 100000)}`
-  };
+  try {
+    const response = await bankClient.post("/api/v1/backoffice/payments", {
+      source_id: accountRef,
+      amount: { value: amount, currency: "EGP" },
+      reference: `fee-payment-${Date.now()}`,
+      description: "Fee payment",
+      capture: true
+    });
+
+    return {
+      approved: response.data.approved === true,
+      providerRef: response.data.payment_id,
+      raw: response.data
+    };
+  } catch (error) {
+    const noResponse = error.code === "ECONNABORTED" || !error.response;
+    if (noResponse) {
+      const serviceError = new Error(
+        "The bank did not confirm or deny this charge - outcome unknown, do not retry automatically"
+      );
+      serviceError.statusCode = 502;
+      serviceError.outcomeUnknown = true;
+      throw serviceError;
+    }
+
+    if (error.response.status === 402) {
+      return { approved: false, reason: error.response.data?.error?.message || "Declined" };
+    }
+
+    if (error.response.status === 404) {
+      const serviceError = new Error("No account or card found with that reference");
+      serviceError.statusCode = 404;
+      serviceError.code = "SOURCE_NOT_FOUND";
+      throw serviceError;
+    }
+
+    // ACCOUNT_NOT_ACTIVE (frozen/dormant) or CARD_BLOCKED - a real, specific
+    // reason from the bank, not a generic failure.
+    if (error.response.status === 422) {
+      const serviceError = new Error(error.response.data?.error?.message || "This account or card cannot be used");
+      serviceError.statusCode = 422;
+      serviceError.code = error.response.data?.error?.code || "SOURCE_NOT_USABLE";
+      throw serviceError;
+    }
+
+    if (error.response.status === 502) {
+      const serviceError = new Error(
+        error.response.data?.error?.message || "The bank could not complete this charge"
+      );
+      serviceError.statusCode = 502;
+      serviceError.outcomeUnknown = true;
+      throw serviceError;
+    }
+
+    console.error("Bank service error (backoffice payment):", error.response?.data || error.message);
+    const serviceError = new Error("Unable to reach the bank for this account payment");
+    serviceError.statusCode = 502;
+    throw serviceError;
+  }
 };
 
 export const reverseAuthorisation = async (providerRef) => {
@@ -46,23 +93,32 @@ export const reverseAuthorisation = async (providerRef) => {
   }
 
   try {
-    // void only works on a charge the bank has authorised but not yet taken.
-    // We charge with capture: true, so most charges are already CAPTURED and
-    // the money has to come back as a refund instead. Try void first because
-    // it leaves nothing on the customer's statement; fall back to refund.
     let response;
 
-    try {
-      response = await bankClient.post(`/api/v1/payments/cards/${providerRef}/void`);
-    } catch (voidError) {
-      const state = voidError.response?.data?.error?.code;
+    if (providerRef?.startsWith("bop_")) {
+      // Backoffice payments always post/capture immediately (capture: true
+      // above) - there is no AUTHORISED, voidable state to catch, so refund
+      // is the only real reversal path for this one.
+      response = await bankClient.post(`/api/v1/backoffice/payments/${providerRef}/refund`);
+    } else {
+      // void only works on a charge the bank has authorised but not yet
+      // taken. We charge with capture: true, so most charges are already
+      // CAPTURED and the money has to come back as a refund instead. Try
+      // void first because it leaves nothing on the customer's statement;
+      // fall back to refund.
+      try {
+        response = await bankClient.post(`/api/v1/payments/cards/${providerRef}/void`);
+      } catch (voidError) {
+        const state = voidError.response?.data?.error?.code;
 
-      if (state !== "INVALID_PAYMENT_STATE") {
-        throw voidError;
+        if (state !== "INVALID_PAYMENT_STATE") {
+          throw voidError;
+        }
+
+        response = await bankClient.post(`/api/v1/payments/cards/${providerRef}/refund`);
       }
-
-      response = await bankClient.post(`/api/v1/payments/cards/${providerRef}/refund`);
     }
+
     return { reversed: true, providerRef, data: response.data };
   } catch (error) {
     console.error("Bank service error (void):", error.response?.data || error.message);
