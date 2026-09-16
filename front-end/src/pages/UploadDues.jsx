@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { CheckCircleIcon } from "../components/Icons";
+import { Icon } from "./institution/icons";
 import { getUser, getToken } from "../lib/auth";
 import "./UploadDues.css";
 
@@ -447,10 +448,8 @@ export default function UploadDues() {
   return (
     <div className="upload-page">
       <div className="page-header">
+        <span className="page-header-icon"><Icon.upload /></span>
         <h1 className="title">Upload Dues</h1>
-        <p className="subtitle">
-          Upload a file with student and fee details to process payments in bulk.
-        </p>
       </div>
 
       {/* ------------------------------------------------------------------ */}

@@ -217,7 +217,7 @@ export default function FeesManagement() {
   return (
     <div className="fees-page">
       <header className="fees-head">
-        <div className="fees-heading-group"><span className="fees-heading-icon"><Icon.card /></span><div><h1 className="fees-title">Fee Management</h1><p className="fees-subtitle">Manage student fee records and collection status.</p></div></div>
+        <div className="fees-heading-group"><span className="fees-heading-icon"><Icon.card /></span><div><h1 className="fees-title">Fee Management</h1></div></div>
         <button type="button" className="fees-primary-btn" onClick={openAddFee}><Icon.plus /> Add Fee</button>
       </header>
 
@@ -233,7 +233,7 @@ export default function FeesManagement() {
       {successMessage && <div className="fees-alert fees-alert-success" role="status"><Icon.checkCircle /> <span>{successMessage}</span><button type="button" aria-label="Dismiss" onClick={() => setSuccessMessage("")}>×</button></div>}
 
       <section className="fees-panel fees-table-panel">
-        <div className="fees-table-head"><div><h2>Fee Records</h2><span>Keep track of student dues and collection activity.</span></div><strong>{filteredFees.length} records</strong></div>
+        <div className="fees-table-head"><div><h2>Fee Records</h2></div><strong>{filteredFees.length} records</strong></div>
         <div className="fees-table-scroll">{isLoading ? <div className="fees-empty"><strong>Loading fee records...</strong></div> : loadError ? <div className="fees-empty"><strong>Fee records could not be loaded</strong><span>Resolve the request error above and refresh the page.</span></div> : <><table><thead><tr><th>Student</th><th>Student Code</th><th>Fee Type</th><th>Period</th><th>Amount</th><th>Currency</th><th>Status</th><th>Remaining</th><th>Actions</th></tr></thead><tbody>{filteredFees.map((fee) => <tr key={fee.id}><td><strong>{fee.student}</strong></td><td>{fee.studentCode}</td><td>{fee.feeType}</td><td>{fee.period}</td><td>{Number(fee.amount).toLocaleString()}</td><td>{fee.currency}</td><td><span className={`fees-status fees-status-${fee.status}`}>{statusLabel(fee.status)}</span></td><td>{money(fee.remaining, fee.currency)}</td><td><div className="fees-row-actions"><button type="button" className="fees-edit-btn" disabled={!canEditFee(fee)} title={canEditFee(fee) ? "Edit fee" : "Fees with recorded payments cannot be edited"} aria-label={`Edit ${fee.feeType} fee for ${fee.student}`} onClick={() => openEditFee(fee)}><Icon.edit /> Edit</button><button type="button" className="fees-delete-btn" disabled={!canDeleteFee(fee)} title={canDeleteFee(fee) ? "Delete fee" : "Fees with recorded payments cannot be deleted"} aria-label={`Delete ${fee.feeType} fee for ${fee.student}`} onClick={() => openDeleteFee(fee)}><Icon.trash /> Delete</button></div></td></tr>)}</tbody></table>{filteredFees.length === 0 && <div className="fees-empty"><strong>No fee records have been added yet</strong><span>New student fee records will appear here.</span></div>}</>}</div>
       </section>
 

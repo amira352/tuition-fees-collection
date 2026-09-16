@@ -185,14 +185,13 @@ export default function StudentsPage() {
           <span className="students-heading-icon"><Icon.users /></span>
           <div>
             <h1 className="students-title">Students</h1>
-            <p className="students-subtitle">Review enrolled students and deactivate those who have left the institution.</p>
           </div>
         </div>
       </header>
 
       <div className="students-stats">
         <div className="students-stat students-stat-total">
-          <div><span>Total</span><strong>{students.length}</strong></div>
+          <div><span>Total Records</span><strong>{students.length}</strong></div>
           <i className="students-stat-icon"><Icon.users /></i>
         </div>
         <div className="students-stat students-stat-active">
@@ -203,27 +202,6 @@ export default function StudentsPage() {
           <div><span>Inactive</span><strong>{students.length - activeCount}</strong></div>
           <i className="students-stat-icon"><Icon.power /></i>
         </div>
-      </div>
-
-      <div className="students-panel students-toolbar">
-        <label className="students-query-field">
-          <span className="students-label-text">Search</span>
-          <span className="students-input-wrap">
-            <Icon.search />
-            <input value={filters.query} placeholder="Student name or code" onChange={(event) => setFilters({ ...filters, query: event.target.value })} />
-          </span>
-        </label>
-        <label>
-          <span className="students-label-text">Status</span>
-          <span className="students-select-chip">
-            <select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}>
-              <option value="">All students</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-            <Icon.chevronDown />
-          </span>
-        </label>
       </div>
 
       {loadError && <div className="students-alert students-alert-error">{loadError}</div>}
@@ -237,8 +215,21 @@ export default function StudentsPage() {
 
       <section className="students-panel students-table-panel">
         <div className="students-table-head">
-          <div><h2>Student Records</h2><span>Deactivated students remain in the list but cannot be reactivated from here.</span></div>
-          <strong>{filtered.length} records</strong>
+          <div><h2>Student Records</h2></div>
+          <div className="students-toolbar">
+            <span className="students-input-wrap">
+              <Icon.search />
+              <input value={filters.query} placeholder="Student name or code" aria-label="Search students" onChange={(event) => setFilters({ ...filters, query: event.target.value })} />
+            </span>
+            <span className="students-select-chip">
+              <select value={filters.status} aria-label="Filter by status" onChange={(event) => setFilters({ ...filters, status: event.target.value })}>
+                <option value="">All students</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <Icon.chevronDown />
+            </span>
+          </div>
         </div>
         <div className="students-table-scroll">
           {isLoading ? (
