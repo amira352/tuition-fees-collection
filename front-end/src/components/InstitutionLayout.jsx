@@ -53,13 +53,13 @@ export default function InstitutionLayout() {
       <aside className={`inst-sidebar${menuOpen ? " is-open" : ""}`}>
         <div className="inst-brand">
           <img src={LOGO_SRC} alt="CIB" className="inst-brand-logo" />
-          <span className="inst-brand-divider" />
           <span className="inst-brand-text">
             <span className="inst-brand-name">{institutionName}</span>
             <span className="inst-brand-sub">Institution Portal</span>
           </span>
         </div>
 
+        <span className="inst-section-label">Menu</span>
         <nav className="inst-nav">
           {NAV.map((item) => {
             const Glyph = Icon[item.icon];
@@ -79,10 +79,19 @@ export default function InstitutionLayout() {
           })}
         </nav>
 
-        <button type="button" className="inst-logout" onClick={handleLogout}>
-          <span className="inst-nav-icon"><Icon.logout /></span>
-          <span>Logout</span>
-        </button>
+        <div className="inst-sidebar-foot">
+          <span className="inst-section-label">Account</span>
+          <div className="inst-profile">
+            <span className="inst-profile-avatar" aria-hidden="true">{initials(institutionName)}</span>
+            <span className="inst-profile-text">
+              <span className="inst-profile-name">Institution Admin</span>
+              <span className="inst-profile-sub">{institutionName}</span>
+            </span>
+            <button type="button" className="inst-logout" aria-label="Logout" title="Logout" onClick={handleLogout}>
+              <Icon.logout />
+            </button>
+          </div>
+        </div>
       </aside>
 
       <div className="inst-main">
