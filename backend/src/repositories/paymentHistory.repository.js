@@ -7,6 +7,7 @@ const HISTORY_FIELDS = `
   id,
   amount,
   payment_type,
+  payment_method,
   status,
   failure_reason,
   created_at,

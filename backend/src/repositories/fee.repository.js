@@ -43,6 +43,7 @@ export const getInstitutionFees = async (institutionId) => {
       name,
       student_code,
       parent_id,
+      is_active,
       fees (
         id,
         fee_type,
