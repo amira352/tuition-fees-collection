@@ -10,10 +10,12 @@ const NAV = [
   // Discounts is hidden for now; restore this entry with its route in App.jsx.
   // { to: "/institution/discounts", label: "Discounts", icon: "tag" },
   { to: "/institution/payments", label: "Payments", icon: "card" },
-  { to: "/institution/epp-plans", label: "EPP Plans", icon: "plan" },
+  // EPP Plans is hidden for now; restore this entry to re-enable.
+  // { to: "/institution/epp-plans", label: "EPP Plans", icon: "plan" },
   { to: "/institution/upload-dues", label: "Upload Dues", icon: "upload" },
   { to: "/institution/reports", label: "Reports", icon: "chart" },
-  { to: "/institution/notifications", label: "Notifications", icon: "bell", badge: 3 },
+  // Notifications is hidden for now; restore this entry to re-enable.
+  // { to: "/institution/notifications", label: "Notifications", icon: "bell", badge: 3 },
   { to: "/institution/profile", label: "Institution Profile", icon: "building" },
 ];
 
@@ -94,11 +96,6 @@ export default function InstitutionLayout() {
           </button>
 
           <div className="inst-topbar-right">
-            <button type="button" className="inst-icon-btn" aria-label="Notifications">
-              <Icon.bell />
-              <span className="inst-icon-badge">3</span>
-            </button>
-            <span className="inst-topbar-divider" />
             <div className="inst-account">
               <span className="inst-avatar" aria-hidden="true">
                 {initials(institutionName)}
