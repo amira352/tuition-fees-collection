@@ -63,7 +63,6 @@ export default function InstitutionsManagement() {
   };
 
   const activeCount = institutions.filter((i) => i.is_active).length;
-  const pendingOnboardingCount = institutions.filter((i) => i.must_change_password).length;
 
   return (
     <div className="page">
@@ -82,10 +81,7 @@ export default function InstitutionsManagement() {
           <div className="stat-label">Active Institutions</div>
           <div className="stat-value">{loading ? "—" : activeCount}</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">Pending onboarding</div>
-          <div className="stat-value">{loading ? "—" : pendingOnboardingCount}</div>
-        </div>
+       
         <div className="stat-card">
           <div className="stat-label">Fees submitted today</div>
           <div className="stat-value">—</div>
@@ -160,10 +156,7 @@ export default function InstitutionsManagement() {
             { label: "Type", value: TYPE_LABELS[selected.type] || selected.type },
             { label: "Email", value: selected.email },
             { label: "Account status", value: selected.is_active ? "Active" : "Inactive" },
-            {
-              label: "Login status",
-              value: selected.must_change_password ? "Awaiting first login" : "Password set",
-            },
+           
             { label: "Registered", value: formatDate(selected.created_at) },
           ]}
         />
