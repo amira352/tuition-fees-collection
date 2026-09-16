@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 
 import authRoutes from "./routes/auth.routes.js";
-import bankRoutes from "./routes/searchByid.routes.js";
+import bankRoutes from "./routes/searchById.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import receiptRoutes from "./routes/receipt.routes.js";

@@ -33,6 +33,10 @@ import {
   deactivateChildController
 } from "../controllers/children.controller.js";
 
+import {
+  getInstitutionDashboardController
+} from "../controllers/institutionDashboard.controller.js";
+
 
 const router = express.Router();
 
@@ -103,6 +107,14 @@ router.put(
   authorizeRoles("institution"),
   authorizeInstitutionAccess,
   deactivateChildController
+);
+
+router.get(
+  "/:id/dashboard",
+  authenticate(),
+  authorizeRoles("institution"),
+  authorizeInstitutionAccess,
+  getInstitutionDashboardController
 );
 
 router.get(
