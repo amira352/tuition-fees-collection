@@ -32,6 +32,9 @@ const InstitutionPayments = lazy(() =>
 const InstitutionEppPlans = lazy(() =>
   import("./pages/institution/InstitutionEppPlans")
 );
+const StudentsPage = lazy(() =>
+  import("./pages/institution/StudentsPage")
+);
 
 // Fallbacks for files that may not exist on all branches
 const FeesManagement = lazy(() =>
@@ -96,6 +99,7 @@ export default function App() {
             }
           >
             <Route index element={<InstitutionDashboard />} />
+            <Route path="students" element={<StudentsPage />} />
             <Route path="fees" element={<FeesManagement />} />
             {/* <Route path="discounts" element={<DiscountsPage />} /> */}
             <Route path="payments" element={<InstitutionPayments />} />
