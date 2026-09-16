@@ -70,7 +70,6 @@ export default function BackOfficeManagement() {
 
   const activeCount = employees.filter((e) => e.is_active).length;
   const adminCount = employees.filter((e) => e.role === "admin").length;
-  const pendingInvitesCount = employees.filter((e) => e.must_change_password).length;
 
   return (
     <div className="page">
@@ -84,20 +83,16 @@ export default function BackOfficeManagement() {
         </Link>
       </div>
 
-      <div className="stat-grid">
-        <div className="stat-card">
-          <div className="stat-label">Active Employees</div>
-          <div className="stat-value">{loading ? "—" : activeCount}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Admins</div>
-          <div className="stat-value">{loading ? "—" : adminCount}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Pending Invites</div>
-          <div className="stat-value">{loading ? "—" : pendingInvitesCount}</div>
-        </div>
-      </div>
+     <div className="stat-grid">
+       <div className="stat-card">
+        <div className="stat-label">Active Employees</div>
+        <div className="stat-value">{loading ? "—" : activeCount}</div>
+       </div>
+       <div className="stat-card">
+        <div className="stat-label">Admins</div>
+        <div className="stat-value">{loading ? "—" : adminCount}</div>
+       </div>
+     </div>
 
       <div className="card">
         {error && (
@@ -172,10 +167,7 @@ export default function BackOfficeManagement() {
             { label: "Role", value: ROLE_LABELS[selected.role] || selected.role },
             { label: "Branch", value: selected.branch },
             { label: "Account status", value: selected.is_active ? "Active" : "Inactive" },
-            {
-              label: "Login status",
-              value: selected.must_change_password ? "Awaiting first login" : "Password set",
-            },
+            
             { label: "Added", value: formatDate(selected.created_at) },
           ]}
         />
