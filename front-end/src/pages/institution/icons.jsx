@@ -106,4 +106,7 @@ export const Icon = {
   layers: () => (
     <svg {...S}><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /></svg>
   ),
+  users: () => (
+    <svg {...S}><circle cx="9" cy="8" r="3.2" /><path d="M3 19.5c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><circle cx="17" cy="9" r="2.5" /><path d="M16.5 14.2c2.8.2 4.5 2.1 4.5 4.8" /></svg>
+  ),
 };
