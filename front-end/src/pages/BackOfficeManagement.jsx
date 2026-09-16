@@ -134,20 +134,7 @@ export default function BackOfficeManagement() {
                       >
                         Manage
                       </button>
-                      {emp.is_active ? (
-                        <button
-                          type="button"
-                          className="btn btn-danger"
-                          onClick={() => {
-                            setDeactivateError("");
-                            setDeactivating(emp);
-                          }}
-                        >
-                          Deactivate
-                        </button>
-                      ) : (
-                        <span className="status-inactive">Inactive</span>
-                      )}
+                      
                     </td>
                   </tr>
                 ))}
@@ -161,6 +148,16 @@ export default function BackOfficeManagement() {
         <ManageDetailsModal
           title={selected.full_name}
           onClose={() => setSelected(null)}
+          onDelete={
+            selected.is_active
+              ? () => {
+                  setDeactivateError("");
+                  setDeactivating(selected);
+                  setSelected(null);
+                }
+              : undefined
+          }
+          deleteLabel="Deactivate"
           fields={[
             { label: "Employee ID", value: shortId(selected.id) },
             { label: "Email", value: selected.email },
