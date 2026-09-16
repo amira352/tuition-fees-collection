@@ -8,7 +8,7 @@ const router = express.Router();
 router.get(
   "/institutions/:id/reports/daily",
   authenticate(),
-  requireRole("back_office", "admin"),
+  requireRole("back_office", "admin","institution"),
   getDailyReport
 );
 
