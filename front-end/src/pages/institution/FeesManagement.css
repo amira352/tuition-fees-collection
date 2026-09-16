@@ -297,3 +297,36 @@
 		grid-template-columns: 1fr;
 	}
 }
+/* Edit fee (PUT /institutions/:id/fees/:feeId) */
+.fees-alert-success { display: flex; align-items: center; gap: 0.6rem; border-color: #bfe6d0; background: #eefaf3; color: #17663f; }
+.fees-alert-success svg { width: 18px; height: 18px; flex-shrink: 0; }
+.fees-alert-success span { flex: 1; }
+.fees-alert-success button { border: 0; background: transparent; color: inherit; font-size: 1.3rem; line-height: 1; cursor: pointer; }
+.fees-row-actions button.fees-edit-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.65rem; border: 1px solid #dfe6f2; border-radius: 8px; background: #eef4fb; color: var(--fees-accent); font-weight: 700; cursor: pointer; }
+.fees-row-actions button.fees-edit-btn svg { width: 14px; height: 14px; }
+.fees-row-actions button.fees-edit-btn:hover:not(:disabled) { background: #dfe9f8; }
+.fees-row-actions button.fees-edit-btn:disabled { background: #f5f5f8; color: #a09daf; border-color: #ebeaf1; cursor: not-allowed; }
+.fees-edit-context { display: flex; flex-direction: column; gap: 0.15rem; margin: 1rem 0; padding: 0.75rem; border-left: 3px solid var(--cib-orange); background: #fffaf4; }
+.fees-edit-context span { color: var(--cib-orange); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+.fees-edit-context small { color: var(--muted); font-size: 0.75rem; }
+.fees-drawer input:disabled { background: #f5f5f8; color: #77738b; cursor: not-allowed; }
+.fees-drawer .fees-drawer-copy { margin: 0; }
+
+/* Delete fee (DELETE /institutions/:id/fees/:feeId) */
+.fees-row-actions button.fees-delete-btn { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.65rem; border: 1px solid #f1d3cd; border-radius: 8px; background: #fff5f3; color: #a63d2e; font-weight: 700; cursor: pointer; }
+.fees-row-actions button.fees-delete-btn svg { width: 14px; height: 14px; }
+.fees-row-actions button.fees-delete-btn:hover:not(:disabled) { background: #fde7e2; }
+.fees-row-actions button.fees-delete-btn:disabled { background: #f5f5f8; color: #a09daf; border-color: #ebeaf1; cursor: not-allowed; }
+.fees-modal-backdrop { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 1rem; background: rgba(15, 29, 49, 0.45); }
+.fees-modal { display: flex; flex-direction: column; gap: 0.85rem; width: min(440px, 100%); box-sizing: border-box; padding: 1.5rem; border-radius: 16px; background: #fff; box-shadow: 0 20px 50px rgba(0, 25, 60, 0.25); }
+.fees-modal h2 { margin: 0; font-size: 1.2rem; color: var(--fees-ink); }
+.fees-modal .fees-drawer-copy { margin: 0; }
+.fees-modal .fees-alert { margin-bottom: 0; padding: 0.85rem 1rem; }
+.fees-modal-icon { display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 12px; background: #fff0ec; color: #bd4d34; }
+.fees-modal-icon svg { width: 1.3rem; height: 1.3rem; }
+.fees-modal-summary { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0.9rem; border-radius: 10px; background: #f7f9fc; font-size: 0.85rem; }
+.fees-modal-summary span { color: var(--muted); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+.fees-modal .fees-drawer-actions { justify-content: flex-end; margin-top: 0.25rem; }
+.fees-danger-btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.68rem 0.9rem; border: 0; border-radius: 10px; background: #bd4d34; color: #fff; font: inherit; font-weight: 700; cursor: pointer; box-shadow: 0 8px 18px rgba(189, 77, 52, 0.22); }
+.fees-danger-btn:hover:not(:disabled) { background: #a63d2e; }
+.fees-danger-btn:disabled, .fees-secondary-btn:disabled { opacity: 0.6; cursor: wait; }
