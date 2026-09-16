@@ -43,7 +43,7 @@ export default function ReportsPage() {
   return (
     <div className="report-page">
       <header className="report-head">
-        <div className="report-heading"><span className="report-icon"><Icon.chart /></span><div><h1>Daily Reports</h1><p>Review collections and outstanding balances by fee type.</p></div></div>
+        <div className="report-heading"><span className="report-icon"><Icon.chart /></span><div><h1>Daily Reports</h1></div></div>
         <label className="report-date">Report date<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
       </header>
 

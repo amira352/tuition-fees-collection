@@ -22,8 +22,7 @@
 .students-heading-group { display: flex; align-items: center; gap: 0.75rem; }
 .students-heading-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 11px; background: var(--students-accent-soft); color: var(--students-accent); }
 .students-heading-icon svg { width: 1.25rem; height: 1.25rem; }
-.students-title { margin: 0 0 0.15rem; font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; }
-.students-subtitle { margin: 0; color: var(--students-muted); font-size: 0.86rem; }
+.students-title { margin: 0; font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; }
 
 /* ---------- Cards ---------- */
 .students-panel { background: var(--students-card); border: 1px solid var(--students-line); border-radius: var(--students-radius); }
@@ -40,14 +39,10 @@
 .students-stat-active .students-stat-icon { background: #e6f6ee; color: #178a56; }
 .students-stat-inactive .students-stat-icon { background: #f0f1f5; color: #7b8194; }
 
-/* ---------- Filters (hugs its own content, never stretched to table width) ---------- */
-/* Same width as one stat card: a third of the row minus the two grid gaps. */
-.students-toolbar { display: flex; align-items: flex-end; align-self: flex-start; gap: 0.6rem; width: calc((100% - 1.5rem) / 3); padding: 0.85rem 1rem; }
-.students-toolbar label { display: flex; flex-direction: column; gap: 0.35rem; }
-.students-label-text { color: var(--students-muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.02em; }
-.students-query-field { flex: 1; min-width: 0; }
+/* ---------- Filters (inside the table card header, right side) ---------- */
+.students-toolbar { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
 .students-select-chip { flex-shrink: 0; }
-.students-input-wrap { position: relative; display: flex; align-items: center; }
+.students-input-wrap { position: relative; display: flex; align-items: center; width: 240px; max-width: 100%; }
 .students-input-wrap svg { position: absolute; left: 0.7rem; width: 0.95rem; height: 0.95rem; color: var(--students-faint); pointer-events: none; }
 .students-input-wrap input { width: 100%; box-sizing: border-box; min-height: 36px; padding: 0.45rem 0.7rem 0.45rem 2.15rem; border: 1px solid var(--students-line); border-radius: 9px; background: #fbfbfd; color: var(--students-ink); font: inherit; font-size: 0.84rem; outline: none; }
 .students-input-wrap input::placeholder { color: var(--students-faint); }
@@ -69,10 +64,8 @@
 
 /* ---------- Table card (height hugs rows; never flex-grown) ---------- */
 .students-table-panel { flex: 0 0 auto; overflow: hidden; }
-.students-table-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--students-line); }
-.students-table-head h2 { margin: 0 0 0.1rem; font-size: 1rem; font-weight: 800; }
-.students-table-head span { color: var(--students-muted); font-size: 0.82rem; }
-.students-table-head strong { color: var(--students-muted); font-size: 0.82rem; font-weight: 700; }
+.students-table-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem 1rem; padding: 0.75rem 1.1rem; border-bottom: 1px solid var(--students-line); }
+.students-table-head h2 { margin: 0; font-size: 1rem; font-weight: 800; }
 .students-table-scroll { overflow-x: auto; }
 .students-table-panel table { min-width: 760px; width: 100%; border-collapse: collapse; }
 .students-table-panel th { padding: 0.65rem 1rem; text-align: left; background: #f8f9fc; color: var(--students-faint); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--students-line); }
@@ -149,7 +142,8 @@
 
 @media (max-width: 600px) {
   .students-stats { grid-template-columns: 1fr; }
-  .students-toolbar { flex-direction: column; align-items: stretch; width: 100%; }
+  .students-toolbar { flex-direction: column; align-items: stretch; width: 100%; margin-left: 0; }
+  .students-input-wrap { width: 100%; }
   .students-select-chip, .students-select-chip select { width: 100%; }
   .students-modal-summary { grid-template-columns: 1fr; }
 }
