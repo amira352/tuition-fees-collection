@@ -34,36 +34,18 @@ function passwordProblems(password) {
 
 export default function Admin() {
   const [searchParams] = useSearchParams();
-  const initialTab = searchParams.get("tab") === "employee" ? "employee" : "institution";
-  const [tab, setTab] = useState("institution");
-  
-  
+  const tab = searchParams.get("tab") === "employee" ? "employee" : "institution";
 
   return (
     <div className="page">
-      <h1 className="page-title">Admin</h1>
-      <p className="page-subtitle">Create back-office employee and institution accounts.</p>
-
-      <div className="admin-tabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "institution"}
-          className={`admin-tab${tab === "institution" ? " active" : ""}`}
-          onClick={() => setTab("institution")}
-        >
-          Institution
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "employee"}
-          className={`admin-tab${tab === "employee" ? " active" : ""}`}
-          onClick={() => setTab("employee")}
-        >
-          Back-office employee
-        </button>
-      </div>
+      <h1 className="page-title">
+        {tab === "employee" ? "Add Back-Office Employee" : "Register Institution"}
+      </h1>
+      <p className="page-subtitle">
+        {tab === "employee"
+          ? "Create a back-office employee account."
+          : "Create an institution account."}
+      </p>
 
       {tab === "institution" ? <InstitutionForm /> : <EmployeeForm />}
     </div>
