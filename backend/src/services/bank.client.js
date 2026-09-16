@@ -170,32 +170,57 @@ export const confirmCard3ds = async (providerRef, otp) => {
 };
 
 /**
- * BE-3 item 1: given a national ID, return the customer's accounts/cards
- * so the back office can pick one. wit-mock-services has no such endpoint
- * (only MOI validation, card charges, and EPP) — this is honestly
- * simulated, deterministic per national ID so the same customer sees the
- * same accounts across calls.
+ * BE-3 item 1: the customer's accounts and cards, so the back office can pick
+ * one to pay from.
+ *
+ * This is the bank's own register, which is a different question from MOI.
+ * MOI says the person exists. This says they bank with us - an ID that is
+ * perfectly real comes back 404 here if they are not a customer.
+ *
+ * Requires the mock running on branch feature/backoffice-customer-lookup —
+ * 404s against main.
  */
 export const getCustomerAccounts = async (nationalId) => {
-  const seed = parseInt(nationalId.slice(-4), 10);
-  return {
-    accounts: [
-      {
-        account_id: `acc_${nationalId.slice(-6)}`,
-        type: "CURRENT",
-        iban_masked: `EG•• •••• •••• ${seed}`,
-        currency: "EGP"
-      }
-    ],
-    cards: [
-      {
-        card_id: `card_${nationalId.slice(-6)}`,
-        masked_number: `4111 •••• •••• ${seed}`,
-        scheme: "VISA",
-        type: seed % 5 === 0 ? "DEBIT" : "CREDIT"
-      }
-    ]
-  };
+  try {
+    const response = await bankClient.get("/api/v1/customers", {
+      params: { national_id: nationalId }
+    });
+
+    return response.data;
+  } catch (error) {
+    const detail = error.response && error.response.data && error.response.data.error;
+    const code = detail && detail.code;
+
+    // Not our customer. A real person, just not one of ours - so this is a
+    // 404 the counter can read, not a bank outage.
+    if (code === "CUSTOMER_NOT_FOUND") {
+      const serviceError = new Error("This national ID is not a CIB customer");
+      serviceError.statusCode = 404;
+      serviceError.code = "NOT_A_BANK_CUSTOMER";
+      serviceError.field = "nationalId";
+      throw serviceError;
+    }
+
+    // The bank checks the shape too - first digit, birth date, checksum - so
+    // it catches things our own 14-digit test does not. Pass its wording on,
+    // it is more specific than anything we would write.
+    if (code === "INVALID_NATIONAL_ID") {
+      const serviceError = new Error(detail.message);
+      serviceError.statusCode = 400;
+      serviceError.code = "INVALID_NATIONAL_ID";
+      serviceError.field = "nationalId";
+      throw serviceError;
+    }
+
+    console.error(
+      "Bank service error (customer lookup):",
+      (error.response && error.response.data) || error.message
+    );
+
+    const serviceError = new Error("Unable to reach the bank for customer details");
+    serviceError.statusCode = 502;
+    throw serviceError;
+  }
 };
 
 /** BE-3 items 5, 6, 7: quotes and plan creation, real calls to the mock. */
