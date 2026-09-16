@@ -57,6 +57,31 @@ function money(value, currency) {
   return `${currency} ${Number(value).toLocaleString()}`;
 }
 
+function initials(name = "") {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  const letters = parts.slice(0, 2).map((part) => part[0].toUpperCase()).join("");
+  return letters || "?";
+}
+
+// Six tinted avatar palettes; a student always gets the same one (hash of id + name).
+const AVATAR_TONES = 6;
+function avatarTone(student) {
+  const key = `${student.id}${student.name}`;
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) % 100003;
+  return hash % AVATAR_TONES;
+}
+
+// Severity is relative to the largest balance currently on the page, so the
+// thresholds adapt to whatever range the institution's data happens to have.
+function outstandingLevel(amount, maxOutstanding) {
+  if (!amount || amount <= 0 || !maxOutstanding) return "none";
+  const ratio = amount / maxOutstanding;
+  if (ratio <= 0.35) return "low";
+  if (ratio <= 0.7) return "medium";
+  return "high";
+}
+
 export default function StudentsPage() {
   const institutionId = getUser()?.id;
   const [students, setStudents] = useState([]);
@@ -78,6 +103,7 @@ export default function StudentsPage() {
   }, [students, filters]);
 
   const activeCount = students.filter((student) => student.isActive).length;
+  const maxOutstanding = useMemo(() => students.reduce((max, student) => Math.max(max, student.outstanding), 0), [students]);
 
   useEffect(() => {
     let active = true;
@@ -162,12 +188,22 @@ export default function StudentsPage() {
             <p className="students-subtitle">Review enrolled students and deactivate those who have left the institution.</p>
           </div>
         </div>
-        <div className="students-stats">
-          <div className="students-stat"><span>Total</span><strong>{students.length}</strong></div>
-          <div className="students-stat"><span>Active</span><strong>{activeCount}</strong></div>
-          <div className="students-stat"><span>Inactive</span><strong>{students.length - activeCount}</strong></div>
-        </div>
       </header>
+
+      <div className="students-stats">
+        <div className="students-stat students-stat-total">
+          <div><span>Total</span><strong>{students.length}</strong></div>
+          <i className="students-stat-icon"><Icon.users /></i>
+        </div>
+        <div className="students-stat students-stat-active">
+          <div><span>Active</span><strong>{activeCount}</strong></div>
+          <i className="students-stat-icon"><Icon.checkCircle /></i>
+        </div>
+        <div className="students-stat students-stat-inactive">
+          <div><span>Inactive</span><strong>{students.length - activeCount}</strong></div>
+          <i className="students-stat-icon"><Icon.power /></i>
+        </div>
+      </div>
 
       <div className="students-panel students-toolbar">
         <label className="students-query-field">
@@ -179,11 +215,14 @@ export default function StudentsPage() {
         </label>
         <label>
           <span className="students-label-text">Status</span>
-          <select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}>
-            <option value="">All students</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+          <span className="students-select-chip">
+            <select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}>
+              <option value="">All students</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <Icon.chevronDown />
+          </span>
         </label>
       </div>
 
@@ -210,19 +249,26 @@ export default function StudentsPage() {
             <>
               <table>
                 <thead>
-                  <tr><th>Student</th><th>Student Code</th><th>Fees</th><th>Outstanding</th><th>Status</th><th>Actions</th></tr>
+                  <tr><th>Student</th><th>Student Code</th><th>Fees</th><th>Outstanding</th><th>Status</th><th className="students-actions-col">Actions</th></tr>
                 </thead>
                 <tbody>
                   {filtered.map((student) => (
                     <tr key={student.id} className={student.isActive ? "" : "is-inactive"}>
-                      <td><strong>{student.name}</strong></td>
-                      <td>{student.studentCode}</td>
-                      <td>{student.feeCount}</td>
-                      <td>{money(student.outstanding, student.currency)}</td>
-                      <td><span className={`students-status students-status-${student.isActive ? "active" : "inactive"}`}>{student.isActive ? "Active" : "Inactive"}</span></td>
                       <td>
+                        <div className="students-identity">
+                          <span className={`students-avatar students-avatar-${avatarTone(student)}`} aria-hidden="true">{initials(student.name)}</span>
+                          <span className="students-identity-text">
+                            <strong>{student.name}</strong>
+                          </span>
+                        </div>
+                      </td>
+                      <td><span className="students-code">{student.studentCode}</span></td>
+                      <td><span className="students-fees-pill">{student.feeCount}</span></td>
+                      <td><span className={`students-amount students-amount-${outstandingLevel(student.outstanding, maxOutstanding)}`}>{money(student.outstanding, student.currency)}</span></td>
+                      <td><span className={`students-status students-status-${student.isActive ? "active" : "inactive"}`}><i className="students-status-dot" />{student.isActive ? "Active" : "Inactive"}</span></td>
+                      <td className="students-actions-col">
                         {student.isActive ? (
-                          <button type="button" className="students-deactivate-btn" aria-label={`Deactivate ${student.name}`} onClick={() => openDeactivate(student)}><Icon.power /> Deactivate</button>
+                          <button type="button" className="students-deactivate-btn" aria-label={`Deactivate ${student.name}`} title="Deactivate" onClick={() => openDeactivate(student)}><Icon.power /></button>
                         ) : (
                           <span className="students-muted">No actions</span>
                         )}
