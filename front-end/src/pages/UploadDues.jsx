@@ -1,25 +1,43 @@
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
+import { CheckCircleIcon } from "../components/Icons";
 import { getUser, getToken } from "../lib/auth";
 import "./UploadDues.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-const REQUIRED_HEADERS = [
-  "parent_national_id",
-  "parent_name",
-  "student_code",
-  "student_name",
-  "fee_type",
-  "period",
-  "amount",
-  "currency",
+// Mirrors backend/src/middleware/upload.middleware.js's multer limits.fileSize.
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
+
+// Mirrors backend/src/services/institutionFeeUpload.service.js's REQUIRED_COLUMNS,
+// in the order the backend documents them.
+const REQUIRED_COLUMNS = [
+  { key: "parent_national_id", description: "Parent national ID" },
+  { key: "student_code", description: "Student code" },
+  { key: "amount", description: "Fee amount" },
+  { key: "currency", description: "Currency (EGP, USD, etc.)" },
+  { key: "parent_name", description: "Parent name" },
+  { key: "student_name", description: "Student name" },
+  { key: "fee_type", description: "Fee type (Tuition, Transport, etc.)" },
+  { key: "period", description: "Academic period" },
 ];
+const REQUIRED_HEADERS = REQUIRED_COLUMNS.map((c) => c.key);
+
+const IMPORTANT_NOTES = [
+  "Use the provided template to ensure the correct column structure.",
+  "Do not modify or remove column headers.",
+  "Make sure all required fields are filled.",
+  "The file must be in .xlsx format.",
+  "Maximum file size is 5 MB.",
+];
+
+// Mirrors backend/src/services/institutionFeeUpload.service.js's validateRow().
+const NATIONAL_ID_RE = /^\d{14}$/;
 
 export default function UploadDues() {
   const fileInputRef = useRef(null);
 
-  // Flow states: 'idle' | 'validating' | 'validation_error' | 'validated' | 'importing' | 'success'
+  // Flow states: 'idle' | 'validating' | 'validation_error' | 'validated' | 'importing' | 'success' | 'partial'
   const [status, setStatus] = useState("idle");
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -33,6 +51,11 @@ export default function UploadDues() {
 
   // Import error message if API fails
   const [apiError, setApiError] = useState("");
+
+  // Real result returned by the backend after it parses + imports the file.
+  const [importResult, setImportResult] = useState(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [reportError, setReportError] = useState("");
 
   // ----------------------------------------------------
   // 1. Download Static Excel Template File
@@ -56,6 +79,8 @@ export default function UploadDues() {
     setValidRecords([]);
     setTotalRecordsCount(0);
     setApiError("");
+    setImportResult(null);
+    setReportError("");
     setStatus("idle");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -70,6 +95,12 @@ export default function UploadDues() {
 
     if (!file.name.toLowerCase().endsWith(".xlsx")) {
       setFileError("Invalid file type. Please upload an Excel file ending with .xlsx");
+      setSelectedFile(null);
+      return;
+    }
+
+    if (file.size > MAX_FILE_BYTES) {
+      setFileError("File is too large. Maximum allowed size is 5 MB.");
       setSelectedFile(null);
       return;
     }
@@ -102,7 +133,8 @@ export default function UploadDues() {
   }
 
   // ----------------------------------------------------
-  // 3. Excel Parsing & Validation Logic
+  // 3. Excel Parsing & Validation Logic (client-side pre-check;
+  //    the backend re-validates every row for real on import)
   // ----------------------------------------------------
   async function handleValidateFile() {
     if (!selectedFile) return;
@@ -197,11 +229,11 @@ export default function UploadDues() {
 
         const rowErrors = [];
 
-        if (!rowData.parent_national_id) {
+        if (!NATIONAL_ID_RE.test(rowData.parent_national_id)) {
           rowErrors.push({
             row: excelRowNumber,
             field: "parent_national_id",
-            error: "Parent national ID is required",
+            error: "Parent national ID must contain exactly 14 digits",
           });
         }
 
@@ -310,7 +342,8 @@ export default function UploadDues() {
   }
 
   // ----------------------------------------------------
-  // 4. Import Dues Flow
+  // 4. Import Dues Flow — backend parses, validates and imports for real,
+  //    and is the source of truth for what actually got saved.
   // ----------------------------------------------------
   async function handleImportDues() {
     if (!selectedFile) return;
@@ -349,10 +382,57 @@ export default function UploadDues() {
         throw error;
       }
 
-      setStatus("success");
+      const result = data?.data || null;
+      setImportResult(result);
+      setStatus(result?.rejected_rows > 0 ? "partial" : "success");
     } catch (err) {
       setApiError(err.message || "Failed to import dues. Please try again.");
       setStatus("validated");
+    }
+  }
+
+  // ----------------------------------------------------
+  // 5. Download the backend's per-row error report for a partial import
+  // ----------------------------------------------------
+  async function handleDownloadErrorReport() {
+    const user = getUser();
+    const institutionId = user?.id;
+    if (!institutionId || !importResult?.upload_id) return;
+
+    setDownloadingReport(true);
+    setReportError("");
+
+    try {
+      const token = getToken();
+      const res = await fetch(
+        `${API_URL}/institutions/${institutionId}/uploads/${importResult.upload_id}/errors`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+
+      if (!res.ok) {
+        let msg = `Could not download the error report (${res.status}).`;
+        try {
+          const data = await res.json();
+          msg = data?.message || msg;
+        } catch { /* no json body */ }
+        throw new Error(msg);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `upload_errors_${importResult.upload_id}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setReportError(err.message || "Could not download the error report.");
+    } finally {
+      setDownloadingReport(false);
     }
   }
 
@@ -369,7 +449,7 @@ export default function UploadDues() {
       <div className="page-header">
         <h1 className="title">Upload Dues</h1>
         <p className="subtitle">
-          Upload the completed Excel template to add student tuition fees and dues.
+          Upload a file with student and fee details to process payments in bulk.
         </p>
       </div>
 
@@ -378,164 +458,235 @@ export default function UploadDues() {
       {/* ------------------------------------------------------------------ */}
       {(status === "idle" || status === "validating") && (
         <div className="upload-flow">
-          {/* 3-Step Visual Structure */}
-          <div className="steps-grid">
-            {/* Step 1 */}
-            <div className="step-card">
-              <div className="step-card-top">
-                <div className="step-badge">Step 1</div>
-                <h2 className="step-title">Download Template</h2>
-                <p className="step-desc">
+          {/* Step progress bar */}
+          <div className="steps-progress">
+            <div className="steps-progress-item">
+              <span className="steps-progress-circle is-current">1</span>
+              <div className="steps-progress-copy">
+                <span className="steps-progress-title">Download Template</span>
+                <span className="steps-progress-desc">
                   Get the predefined Excel template with the exact required column structure.
-                </p>
-              </div>
-
-              <div className="step-card-bottom">
-                <button
-                  type="button"
-                  className="step-btn secondary"
-                  onClick={handleDownloadTemplate}
-                >
-                  <svg className="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Download Excel Template
-                </button>
+                </span>
               </div>
             </div>
-
-            {/* Step 2 */}
-            <div className="step-card">
-              <div className="step-card-top">
-                <div className="step-badge">Step 2</div>
-                <h2 className="step-title">Fill the Template</h2>
-                <p className="step-desc">
+            <span className="steps-progress-line" />
+            <div className="steps-progress-item">
+              <span className="steps-progress-circle">2</span>
+              <div className="steps-progress-copy">
+                <span className="steps-progress-title">Fill the Template</span>
+                <span className="steps-progress-desc">
                   Fill in the required student and fee details. Do not modify or remove column headers.
-                </p>
-              </div>
-
-              <div className="step-card-bottom">
-                <div className="step-info-box">
-                  <div className="step-info-header">
-                    <svg className="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span>Mandatory Columns</span>
-                  </div>
-                  <div className="column-tags">
-                    <span className="col-tag">parent_national_id</span>
-                    <span className="col-tag">student_code</span>
-                    <span className="col-tag">amount</span>
-                    <span className="col-tag">currency</span>
-                    <span className="col-tag">parent_name</span>
-                    <span className="col-tag">student_name</span>
-                    <span className="col-tag">fee_type</span>
-                    <span className="col-tag">period</span>
-                  </div>
-                </div>
+                </span>
               </div>
             </div>
-
-            {/* Step 3 */}
-            <div className="step-card highlight">
-              <div className="step-card-top">
-                <div className="step-badge active">Step 3</div>
-                <h2 className="step-title">Upload File</h2>
-                <p className="step-desc">
-                  Upload your completed <code>.xlsx</code> file for validation and import.
-                </p>
-              </div>
-
-              <div className="step-card-bottom">
-                {/* Drag and Drop Zone */}
-                <div
-                  className={`dropzone ${isDragOver ? "drag-over" : ""} ${selectedFile ? "has-file" : ""}`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={() => !selectedFile && fileInputRef.current?.click()}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    className="file-input-hidden"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        handleFileSelect(e.target.files[0]);
-                      }
-                    }}
-                  />
-
-                  {!selectedFile ? (
-                    <div className="dropzone-content">
-                      <div className="dropzone-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                      </div>
-                      <p className="dropzone-primary-text">
-                        Drag & Drop Excel file here
-                      </p>
-                      <p className="dropzone-secondary-text">or <span className="browse-link">Browse Files</span></p>
-                      <span className="format-tag">Accepted format: .xlsx</span>
-                    </div>
-                  ) : (
-                    <div className="selected-file-card">
-                      <div className="file-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div className="file-details">
-                        <span className="file-name">{selectedFile.name}</span>
-                        <span className="file-size">{formatFileSize(selectedFile.size)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Action Buttons for Step 3 */}
-                {selectedFile && (
-                  <div className="file-actions">
-                    <button
-                      type="button"
-                      className="action-btn outline"
-                      onClick={resetState}
-                      disabled={status === "validating"}
-                    >
-                      Remove File
-                    </button>
-                    <button
-                      type="button"
-                      className="action-btn primary"
-                      onClick={handleValidateFile}
-                      disabled={status === "validating"}
-                    >
-                      {status === "validating" ? (
-                        <>
-                          <span className="spinner" />
-                          Validating…
-                        </>
-                      ) : (
-                        "Validate & Upload"
-                      )}
-                    </button>
-                  </div>
-                )}
+            <span className="steps-progress-line" />
+            <div className="steps-progress-item">
+              <span className="steps-progress-circle">3</span>
+              <div className="steps-progress-copy">
+                <span className="steps-progress-title">Upload File</span>
+                <span className="steps-progress-desc">
+                  Upload your completed .xlsx file for validation and import.
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Global File Error Alert */}
-          {fileError && (
-            <div className="alert danger-alert" role="alert">
-              <svg className="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{fileError}</span>
+          <div className="upload-layout">
+            {/* Main card: 3 numbered sections stacked */}
+            <div className="upload-main-card">
+              <section className="upload-section">
+                <div className="upload-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </div>
+                <div className="upload-section-body">
+                  <h2 className="upload-section-title">1. Download Template</h2>
+                  <p className="upload-section-desc">
+                    Get the predefined Excel template with the exact required column structure.
+                  </p>
+                  <button
+                    type="button"
+                    className="step-btn secondary"
+                    onClick={handleDownloadTemplate}
+                  >
+                    <svg className="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download Excel Template
+                  </button>
+                </div>
+              </section>
+
+              <section className="upload-section">
+                <div className="upload-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="upload-section-body">
+                  <h2 className="upload-section-title">2. Required Columns</h2>
+                  <p className="upload-section-desc">
+                    Make sure your file includes the following columns (do not modify or remove them).
+                  </p>
+                  <div className="column-tags">
+                    {REQUIRED_HEADERS.map((h) => (
+                      <span key={h} className="col-tag">{h}</span>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              <section className="upload-section">
+                <div className="upload-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <div className="upload-section-body">
+                  <h2 className="upload-section-title">3. Upload File</h2>
+                  <p className="upload-section-desc">
+                    Upload your completed <code>.xlsx</code> file for validation and import.
+                  </p>
+
+                  {/* Drag and Drop Zone */}
+                  <div
+                    className={`dropzone ${isDragOver ? "drag-over" : ""} ${selectedFile ? "has-file" : ""}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => !selectedFile && fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      className="file-input-hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleFileSelect(e.target.files[0]);
+                        }
+                      }}
+                    />
+
+                    {!selectedFile ? (
+                      <div className="dropzone-content">
+                        <div className="dropzone-icon">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                        </div>
+                        <p className="dropzone-primary-text">
+                          Drag & Drop Excel file here
+                        </p>
+                        <p className="dropzone-secondary-text">or <span className="browse-link">Browse Files</span></p>
+                        <span className="format-tag">Supported format: .xlsx &nbsp;|&nbsp; Maximum file size: 5 MB</span>
+                      </div>
+                    ) : (
+                      <div className="selected-file-card">
+                        <div className="file-icon">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="file-details">
+                          <span className="file-name">{selectedFile.name}</span>
+                          <span className="file-size">{formatFileSize(selectedFile.size)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons for Step 3 */}
+                  {selectedFile && (
+                    <div className="file-actions">
+                      <button
+                        type="button"
+                        className="action-btn outline"
+                        onClick={resetState}
+                        disabled={status === "validating"}
+                      >
+                        Remove File
+                      </button>
+                      <button
+                        type="button"
+                        className="action-btn primary"
+                        onClick={handleValidateFile}
+                        disabled={status === "validating"}
+                      >
+                        {status === "validating" ? (
+                          <>
+                            <span className="spinner" />
+                            Validating…
+                          </>
+                        ) : (
+                          "Validate & Upload"
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* File Error Alert */}
+                  {fileError && (
+                    <div className="alert danger-alert" role="alert">
+                      <svg className="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{fileError}</span>
+                    </div>
+                  )}
+                </div>
+              </section>
             </div>
-          )}
+
+            {/* Sidebar: Important Notes + Template Columns */}
+            <aside className="upload-sidebar">
+              <div className="notes-card">
+                <div className="notes-card-head">
+                  <svg className="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="9" strokeWidth="1.8" />
+                    <path strokeLinecap="round" strokeWidth="1.8" d="M12 8h.01M11 12h1v4h1" />
+                  </svg>
+                  <h3>Important Notes</h3>
+                </div>
+                <ul className="notes-list">
+                  {IMPORTANT_NOTES.map((note) => (
+                    <li key={note}>
+                      <span className="notes-list-icon"><CheckCircleIcon /></span>
+                      {note}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="columns-card">
+                <div className="notes-card-head">
+                  <svg className="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <h3>Template Columns</h3>
+                </div>
+                <div className="columns-table-wrap">
+                  <table className="columns-table">
+                    <thead>
+                      <tr>
+                        <th>Column Name</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {REQUIRED_COLUMNS.map((c) => (
+                        <tr key={c.key}>
+                          <td><code>{c.key}</code></td>
+                          <td>{c.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </aside>
+          </div>
         </div>
       )}
 
@@ -663,9 +814,9 @@ export default function UploadDues() {
       )}
 
       {/* ------------------------------------------------------------------ */}
-      {/* STATE 4: SUCCESS CONFIRMATION                                      */}
+      {/* STATE 4: SUCCESS CONFIRMATION (backend accepted every row)         */}
       {/* ------------------------------------------------------------------ */}
-      {status === "success" && (
+      {status === "success" && importResult && (
         <div className="result-card success-final-state">
           <div className="success-icon-wrapper">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -679,15 +830,15 @@ export default function UploadDues() {
 
           <div className="stats-grid">
             <div className="stat-box valid">
-              <span className="stat-value">{validRecords.length}</span>
+              <span className="stat-value">{importResult.accepted_rows}</span>
               <span className="stat-label">Dues Uploaded</span>
             </div>
             <div className="stat-box">
-              <span className="stat-value">{validRecords.length}</span>
+              <span className="stat-value">{importResult.total_rows}</span>
               <span className="stat-label">Records Processed</span>
             </div>
             <div className="stat-box zero-errors">
-              <span className="stat-value">0</span>
+              <span className="stat-value">{importResult.rejected_rows}</span>
               <span className="stat-label">Errors</span>
             </div>
           </div>
@@ -696,6 +847,71 @@ export default function UploadDues() {
             <button type="button" className="action-btn primary lg" onClick={resetState}>
               Upload Another File
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------------ */}
+      {/* STATE 5: PARTIAL IMPORT (backend rejected some rows)               */}
+      {/* ------------------------------------------------------------------ */}
+      {status === "partial" && importResult && (
+        <div className="result-card error-state">
+          <div className="result-header danger">
+            <div className="status-badge danger">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="result-title">Some rows could not be imported</h2>
+              <p className="result-subtitle">
+                The server processed the file but rejected {importResult.rejected_rows} of{" "}
+                {importResult.total_rows} row{importResult.total_rows > 1 ? "s" : ""}. Download the error
+                report to see exactly what to fix.
+              </p>
+            </div>
+          </div>
+
+          <div className="stats-grid">
+            <div className="stat-box valid">
+              <span className="stat-value">{importResult.accepted_rows}</span>
+              <span className="stat-label">Imported</span>
+            </div>
+            <div className="stat-box">
+              <span className="stat-value">{importResult.total_rows}</span>
+              <span className="stat-label">Total Rows</span>
+            </div>
+            <div className="stat-box danger">
+              <span className="stat-value">{importResult.rejected_rows}</span>
+              <span className="stat-label">Rejected</span>
+            </div>
+          </div>
+
+          {reportError && (
+            <div className="alert danger-alert" role="alert">{reportError}</div>
+          )}
+
+          <div className="result-footer actions-row">
+            <button type="button" className="action-btn outline" onClick={resetState}>
+              Upload Another File
+            </button>
+            {importResult.error_report_available && (
+              <button
+                type="button"
+                className="action-btn primary lg"
+                onClick={handleDownloadErrorReport}
+                disabled={downloadingReport}
+              >
+                {downloadingReport ? (
+                  <>
+                    <span className="spinner" />
+                    Downloading…
+                  </>
+                ) : (
+                  "Download Error Report"
+                )}
+              </button>
+            )}
           </div>
         </div>
       )}
