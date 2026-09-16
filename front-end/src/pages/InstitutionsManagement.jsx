@@ -125,20 +125,7 @@ export default function InstitutionsManagement() {
                       >
                         Manage
                       </button>
-                      {inst.is_active ? (
-                        <button
-                          type="button"
-                          className="btn btn-danger"
-                          onClick={() => {
-                            setDeleteError("");
-                            setDeleting(inst);
-                          }}
-                        >
-                          Delete
-                        </button>
-                      ) : (
-                        <span className="status-inactive">Inactive</span>
-                      )}
+                     
                     </td>
                   </tr>
                 ))}
@@ -152,6 +139,16 @@ export default function InstitutionsManagement() {
         <ManageDetailsModal
           title={selected.name}
           onClose={() => setSelected(null)}
+          onDelete={
+            selected.is_active
+              ? () => {
+                  setDeleteError("");
+                  setDeleting(selected);
+                  setSelected(null);
+                }
+              : undefined
+          }
+          deleteLabel="Delete"
           fields={[
             { label: "Type", value: TYPE_LABELS[selected.type] || selected.type },
             { label: "Email", value: selected.email },

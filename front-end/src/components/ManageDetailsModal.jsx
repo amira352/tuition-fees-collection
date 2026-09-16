@@ -1,5 +1,4 @@
-export default function ManageDetailsModal({ title, fields, onClose }) {
-  return (
+export default function ManageDetailsModal({ title, fields, onClose, onDelete, deleteLabel }) {  return (
     <div className="mgmt-modal-backdrop" onClick={onClose}>
       <div className="mgmt-modal" onClick={(e) => e.stopPropagation()}>
         <div className="mgmt-modal-header">
@@ -21,7 +20,12 @@ export default function ManageDetailsModal({ title, fields, onClose }) {
           </div>
         ))}
 
-        <div className="mgmt-modal-footer">
+               <div className="mgmt-modal-footer">
+          {onDelete && (
+            <button type="button" className="btn btn-danger" onClick={onDelete}>
+              {deleteLabel || "Delete"}
+            </button>
+          )}
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Close
           </button>
