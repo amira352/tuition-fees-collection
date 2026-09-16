@@ -49,6 +49,11 @@ const ProfilePage = lazy(() =>
     default: () => <ComingSoon />,
   }))
 );
+const InstitutionProfile = lazy(() =>
+  import("./pages/institution/InstitutionProfile").catch(() => ({
+    default: () => <ComingSoon />,
+  }))
+);
 
 function Home() {
   if (!isAuthenticated()) {
@@ -98,7 +103,7 @@ export default function App() {
             <Route path="upload-dues" element={<UploadDues />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="notifications" element={<ComingSoon />} />
-            <Route path="profile" element={<ComingSoon />} />
+            <Route path="profile" element={<InstitutionProfile />} />
           </Route>
 
           {/* Back-Office Operations & Admin */}
