@@ -11,6 +11,22 @@ const BASE_FIELDS = `
   is_active
 `;
 
+// Deliberately a separate list. BASE_FIELDS carries password_hash because
+// login needs it to compare against - this one must never leave the server,
+// so the profile query does not ask for it at all rather than fetching it
+// and trusting somebody to delete it afterwards.
+const PROFILE_FIELDS = `
+  id,
+  email,
+  branch,
+  role,
+  full_name,
+  must_change_password,
+  is_active,
+  created_at,
+  password_changed_at
+`;
+
 export const findBankEmployeeByemail = async (email) => {
   const { data, error } = await supabase
     .from("bank_employees")
@@ -29,6 +45,20 @@ export const findBankEmployeeById = async (id) => {
   const { data, error } = await supabase
     .from("bank_employees")
     .select(BASE_FIELDS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
+export const findBankEmployeeProfile = async (id) => {
+  const { data, error } = await supabase
+    .from("bank_employees")
+    .select(PROFILE_FIELDS)
     .eq("id", id)
     .maybeSingle();
 
