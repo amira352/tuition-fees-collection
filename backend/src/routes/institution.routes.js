@@ -37,6 +37,12 @@ import {
   getInstitutionDashboardController
 } from "../controllers/institutionDashboard.controller.js";
 
+import {
+  getInstitutionProfileController,
+  updateInstitutionProfileController,
+  updateInstitutionAvatarController
+} from "../controllers/institutionProfile.controller.js";
+
 
 const router = express.Router();
 
@@ -115,6 +121,30 @@ router.get(
   authorizeRoles("institution"),
   authorizeInstitutionAccess,
   getInstitutionDashboardController
+);
+
+router.get(
+  "/:id/profile",
+  authenticate(),
+  authorizeRoles("institution"),
+  authorizeInstitutionAccess,
+  getInstitutionProfileController
+);
+
+router.put(
+  "/:id/profile",
+  authenticate(),
+  authorizeRoles("institution"),
+  authorizeInstitutionAccess,
+  updateInstitutionProfileController
+);
+
+router.put(
+  "/:id/avatar",
+  authenticate(),
+  authorizeRoles("institution"),
+  authorizeInstitutionAccess,
+  updateInstitutionAvatarController
 );
 
 router.get(

@@ -1,47 +1,73 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BuildingIcon, LockIcon } from "../../components/Icons";
 import { changePassword, getUser } from "../../lib/auth";
-import { getMockProfileExtras } from "./profileData";
+import { apiGet, apiPut } from "../../lib/api";
+import { getInstitutionDisplayId } from "./profileData";
 import { SectionCard } from "./widgets";
 import "./InstitutionProfile.css";
 
 const TYPE_LABEL = { school: "School", university: "University" };
-const AVATAR_MAX_BYTES = 2 * 1024 * 1024; // 2MB
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024; // 2MB — mirrors the backend's AVATAR_MAX_LENGTH.
 
 function formatDate(iso) {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   });
 }
 
-function avatarKey(userId) {
-  return `institution_avatar_${userId ?? "unknown"}`;
-}
-
 export default function InstitutionProfile() {
   const user = getUser();
-  const extras = useMemo(() => getMockProfileExtras(user), [user]);
+  const institutionId = user?.id;
+
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [editOpen, setEditOpen] = useState(false);
 
-  const [avatar, setAvatar] = useState(() => {
-    try {
-      return localStorage.getItem(avatarKey(user?.id)) || null;
-    } catch {
-      return null;
-    }
-  });
+  useEffect(() => {
+    if (!institutionId) return;
+    let cancelled = false;
 
-  function handleAvatarSelected(dataUrl) {
-    setAvatar(dataUrl);
-    // TODO: upload to the backend once a profile-picture endpoint exists.
-    // Stored locally in this browser only, for now.
-    try {
-      localStorage.setItem(avatarKey(user?.id), dataUrl);
-    } catch {
-      // storage full/unavailable — the picture still shows for this session
-    }
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const result = await apiGet(`/institutions/${institutionId}/profile`);
+        if (!cancelled) setProfile(result);
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Couldn't load your profile.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [institutionId]);
+
+  const displayId = useMemo(
+    () => getInstitutionDisplayId(profile?.id ?? institutionId),
+    [profile?.id, institutionId],
+  );
+
+  if (loading) {
+    return (
+      <div className="dash">
+        <div className="placeholder-card">Loading profile…</div>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="dash">
+        <div className="alert" role="alert">{error || "Couldn't load your profile."}</div>
+      </div>
+    );
   }
 
   return (
@@ -58,18 +84,15 @@ export default function InstitutionProfile() {
 
         <div className="profile-card-content">
           <span className="profile-avatar profile-avatar--floating">
-            {avatar ? <img src={avatar} alt="" /> : <BuildingIcon />}
+            {profile.avatar_base64 ? <img src={profile.avatar_base64} alt="" /> : <BuildingIcon />}
           </span>
 
           <div className="profile-card-main">
             <div className="profile-card-top">
               <div className="profile-name-line">
-                <h2 className="profile-name">{user?.name || "Your Institution"}</h2>
-                <span className="badge">{TYPE_LABEL[user?.type] || user?.type || "Institution"}</span>
-                <span className="badge badge--active">
-                  <span className="badge-dot" />
-                  Active
-                </span>
+                <h2 className="profile-name">{profile.name}</h2>
+                <span className="badge">{TYPE_LABEL[profile.type] || profile.type || "Institution"}</span>
+                <StatusBadge active={profile.is_active} />
               </div>
               <button type="button" className="profile-edit-btn" onClick={() => setEditOpen(true)}>
                 <PencilIcon />
@@ -77,9 +100,9 @@ export default function InstitutionProfile() {
               </button>
             </div>
             <p className="profile-meta">
-              Institution ID <strong>{extras.displayId}</strong>
+              Institution ID <strong>{displayId}</strong>
               <span className="profile-meta-sep" aria-hidden="true" />
-              Joined {formatDate(extras.joinedDate)}
+              Joined {formatDate(profile.created_at)}
             </p>
           </div>
         </div>
@@ -88,30 +111,40 @@ export default function InstitutionProfile() {
       <div className="profile-grid">
         <SectionCard title="Institution Information" icon="building">
           <dl className="profile-fields">
-            <Field label="Institution Name" value={user?.name} />
-            <Field label="Institution Type" value={TYPE_LABEL[user?.type] || user?.type} />
-            <Field label="Institution ID" value={extras.displayId} />
-            <Field
-              label="Status"
-              value={<span className="badge badge--active"><span className="badge-dot" />Active</span>}
-              raw
-            />
-            <Field label="Joined Date" value={formatDate(extras.joinedDate)} />
+            <Field label="Institution Name" value={profile.name} />
+            <Field label="Institution Type" value={TYPE_LABEL[profile.type] || profile.type} />
+            <Field label="Institution ID" value={displayId} />
+            <Field label="Status" raw value={<StatusBadge active={profile.is_active} />} />
+            <Field label="Joined Date" value={formatDate(profile.created_at)} />
           </dl>
         </SectionCard>
 
         <SectionCard title="Contact Information" icon="card">
           <dl className="profile-fields">
-            <Field label="Email" value={user?.email} />
-            <Field label="Phone" value={extras.contact.phone} />
+            <Field label="Email" value={profile.email} />
+            <Field label="Phone" value={profile.phone} />
           </dl>
         </SectionCard>
       </div>
 
       {editOpen && (
-        <EditProfileModal onClose={() => setEditOpen(false)} onAvatarSelected={handleAvatarSelected} />
+        <EditProfileModal
+          institutionId={institutionId}
+          profile={profile}
+          onClose={() => setEditOpen(false)}
+          onProfileUpdated={(patch) => setProfile((p) => ({ ...p, ...patch }))}
+        />
       )}
     </div>
+  );
+}
+
+function StatusBadge({ active }) {
+  return (
+    <span className={`badge${active ? " badge--active" : ""}`}>
+      <span className="badge-dot" />
+      {active ? "Active" : "Inactive"}
+    </span>
   );
 }
 
@@ -126,7 +159,7 @@ function Field({ label, value, raw = false }) {
 
 /* ============================= Edit Profile modal ============================= */
 
-function EditProfileModal({ onClose, onAvatarSelected }) {
+function EditProfileModal({ institutionId, profile, onClose, onProfileUpdated }) {
   return (
     <div className="profile-modal-overlay" onClick={onClose}>
       <div
@@ -143,7 +176,16 @@ function EditProfileModal({ onClose, onAvatarSelected }) {
           </button>
         </div>
 
-        <AvatarPicker onSelected={onAvatarSelected} />
+        <AvatarPicker
+          institutionId={institutionId}
+          currentAvatar={profile.avatar_base64}
+          onUpdated={onProfileUpdated}
+        />
+        <PhoneForm
+          institutionId={institutionId}
+          currentPhone={profile.phone}
+          onUpdated={onProfileUpdated}
+        />
         <ChangePasswordForm />
 
         <button type="button" className="profile-done-btn" onClick={onClose}>
@@ -154,9 +196,10 @@ function EditProfileModal({ onClose, onAvatarSelected }) {
   );
 }
 
-function AvatarPicker({ onSelected }) {
-  const [preview, setPreview] = useState(null);
+function AvatarPicker({ institutionId, currentAvatar, onUpdated }) {
+  const [preview, setPreview] = useState(currentAvatar || null);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
 
   function handleChange(event) {
@@ -175,9 +218,21 @@ function AvatarPicker({ onSelected }) {
 
     setError("");
     const reader = new FileReader();
-    reader.onload = () => {
-      setPreview(reader.result);
-      onSelected(reader.result);
+    reader.onload = async () => {
+      const dataUrl = reader.result;
+      setPreview(dataUrl);
+      setSaving(true);
+      try {
+        const updated = await apiPut(`/institutions/${institutionId}/avatar`, {
+          avatar_base64: dataUrl,
+        });
+        onUpdated(updated);
+      } catch (err) {
+        setError(err.message || "Couldn't save the picture. Please try again.");
+        setPreview(currentAvatar || null);
+      } finally {
+        setSaving(false);
+      }
     };
     reader.readAsDataURL(file);
   }
@@ -190,11 +245,16 @@ function AvatarPicker({ onSelected }) {
           {preview ? <img src={preview} alt="" /> : <BuildingIcon />}
         </span>
         <div>
-          <button type="button" className="profile-edit-btn" onClick={() => fileInputRef.current?.click()}>
+          <button
+            type="button"
+            className="profile-edit-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={saving}
+          >
             <CameraIcon />
-            Change Picture
+            {saving ? "Saving…" : "Change Picture"}
           </button>
-          <p className="profile-hint">JPG or PNG, up to 2MB. Saved to this device only for now.</p>
+          <p className="profile-hint">JPG or PNG, up to 2MB.</p>
           {error && <p className="profile-avatar-error">{error}</p>}
         </div>
         <input
@@ -205,6 +265,64 @@ function AvatarPicker({ onSelected }) {
           onChange={handleChange}
         />
       </div>
+    </section>
+  );
+}
+
+function PhoneForm({ institutionId, currentPhone, onUpdated }) {
+  const [phone, setPhone] = useState(currentPhone || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const dirty = phone.trim() !== (currentPhone || "");
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError("");
+    setSuccess(false);
+    setSaving(true);
+    try {
+      const updated = await apiPut(`/institutions/${institutionId}/profile`, {
+        phone: phone.trim(),
+      });
+      onUpdated(updated);
+      setSuccess(true);
+    } catch (err) {
+      setError(err.message || "Couldn't save the phone number. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="profile-modal-section">
+      <h3 className="profile-modal-section-title">Phone Number</h3>
+      <form onSubmit={handleSubmit} noValidate>
+        {error && <div className="alert" role="alert">{error}</div>}
+        {success && <div className="alert-success" role="status">Phone number updated.</div>}
+
+        <label className="field">
+          <span className="field-label">Institution phone</span>
+          <span className="input-shell">
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setSuccess(false);
+              }}
+              placeholder="e.g. +20 2 2612 3456"
+              disabled={saving}
+            />
+          </span>
+        </label>
+
+        <button type="submit" className="profile-save-btn" disabled={saving || !dirty}>
+          {saving && <span className="spinner" aria-hidden="true" />}
+          {saving ? "Saving…" : "Save Phone"}
+        </button>
+      </form>
     </section>
   );
 }
