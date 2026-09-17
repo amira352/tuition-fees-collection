@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import { getUser, logout } from "../lib/auth";
+import { apiGet } from "../lib/api";
 import { Icon } from "../pages/institution/icons";
 import "./InstitutionLayout.css";
 
@@ -26,6 +27,29 @@ export default function InstitutionLayout() {
   const navigate = useNavigate();
   const user = getUser();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+
+  // Loaded once for the sidebar/topbar avatars; the Profile page (reached
+  // through the Outlet context below) pushes a fresh value here the moment
+  // it saves a new picture, so both spots update without a reload.
+  // Runs even for a non-institution user (harmless no-op below) — hooks
+  // can't be called after the early return underneath.
+  useEffect(() => {
+    if (!user?.id || user?.role !== "institution") return;
+    let cancelled = false;
+
+    apiGet(`/institutions/${user.id}/profile`)
+      .then((profile) => {
+        if (!cancelled) setAvatarUrl(profile.avatar_base64 || null);
+      })
+      .catch(() => {
+        // Non-critical — the initials fallback covers this.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.role]);
 
   // This area is for institution accounts only.
   if (user?.role !== "institution") {
@@ -82,7 +106,9 @@ export default function InstitutionLayout() {
         <div className="inst-sidebar-foot">
           <span className="inst-section-label">Account</span>
           <div className="inst-profile">
-            <span className="inst-profile-avatar" aria-hidden="true">{initials(institutionName)}</span>
+            <span className="inst-profile-avatar" aria-hidden="true">
+              {avatarUrl ? <img src={avatarUrl} alt="" /> : initials(institutionName)}
+            </span>
             <span className="inst-profile-text">
               <span className="inst-profile-name">Institution Admin</span>
               <span className="inst-profile-sub">{institutionName}</span>
@@ -108,7 +134,7 @@ export default function InstitutionLayout() {
           <div className="inst-topbar-right">
             <div className="inst-account">
               <span className="inst-avatar" aria-hidden="true">
-                {initials(institutionName)}
+                {avatarUrl ? <img src={avatarUrl} alt="" /> : initials(institutionName)}
               </span>
               <span className="inst-account-text">
                 <span className="inst-account-name">{institutionName}</span>
@@ -119,7 +145,7 @@ export default function InstitutionLayout() {
         </header>
 
         <main className="inst-content">
-          <Outlet />
+          <Outlet context={{ setAvatarUrl }} />
         </main>
       </div>
     </div>

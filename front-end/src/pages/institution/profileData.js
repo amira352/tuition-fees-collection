@@ -1,19 +1,8 @@
 /**
- * Extra institution-profile fields the backend doesn't have yet.
- * institution.repository.js only stores { id, name, type, email,
- * password_hash, must_change_password, is_active } — the display ID, joined
- * date, and phone below are mock, kept here so it's obvious what's real vs.
- * illustrative.
- *
- * Real, from the logged-in session: name, type, email (see getUser()).
+ * The Institution Profile page displays a short, human-friendly ID rather
+ * than the raw database id — this is a purely presentational format, not
+ * something the backend stores or needs to.
  */
-
-export function getMockProfileExtras(user) {
-  return {
-    displayId: `INS-${String(user?.id || "000000").slice(-6).toUpperCase().padStart(6, "0")}`,
-    joinedDate: "2020-01-15",
-    contact: {
-      phone: "+20 2 2612 3456",
-    },
-  };
+export function getInstitutionDisplayId(id) {
+  return `INS-${String(id || "000000").slice(-6).toUpperCase().padStart(6, "0")}`;
 }

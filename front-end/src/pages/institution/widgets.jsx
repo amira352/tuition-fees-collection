@@ -4,6 +4,7 @@ import { Icon } from "./icons";
 /* ---------- KPI card ---------- */
 
 export function StatCard({ label, value, money, delta, tone }) {
+  const hasDelta = typeof delta === "number";
   const positive = delta >= 0;
   return (
     <article className={`stat stat--${tone}`}>
@@ -14,10 +15,12 @@ export function StatCard({ label, value, money, delta, tone }) {
       <span className="stat-value">
         {money ? formatEGP(value) : formatNumber(value)}
       </span>
-      <span className={`stat-delta${positive ? "" : " is-down"}`}>
-        {positive ? "▲" : "▼"} {Math.abs(delta)}%
-        <span className="stat-delta-note">vs. last month</span>
-      </span>
+      {hasDelta && (
+        <span className={`stat-delta${positive ? "" : " is-down"}`}>
+          {positive ? "▲" : "▼"} {Math.abs(delta)}%
+          <span className="stat-delta-note">vs. last month</span>
+        </span>
+      )}
     </article>
   );
 }
@@ -67,31 +70,6 @@ export function LegendList({ items, total }) {
           <span className="legend-amount">{formatEGP(item.amount)}</span>
         </li>
       ))}
-    </ul>
-  );
-}
-
-/* ---------- Recent activity feed ---------- */
-
-export function RecentActivity({ items }) {
-  return (
-    <ul className="activity">
-      {items.map((item) => {
-        const Glyph = Icon[item.icon] || Icon.report;
-        return (
-          <li key={item.id} className="activity-row">
-            <span className={`activity-icon activity-icon--${item.tone}`}>
-              <Glyph />
-            </span>
-            <span className="activity-text">
-              <span className="activity-title">{item.title}</span>
-              <span className="activity-detail">{item.detail}</span>
-            </span>
-            <span className="activity-time">{item.time}</span>
-            <StatusPill status={item.tone} />
-          </li>
-        );
-      })}
     </ul>
   );
 }

@@ -17,7 +17,10 @@ const app = express();
 
 app.use(cors());
 
-app.use(express.json());
+// 3mb (not the default 100kb) so the institution profile avatar endpoint
+// can accept a base64-encoded image in its JSON body — see
+// institutionProfile.service.js for the actual 2MB image size check.
+app.use(express.json({ limit: "3mb" }));
 
 app.get("/", (req, res) => {
   res.json({
