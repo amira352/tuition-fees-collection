@@ -54,28 +54,34 @@ export default function InstitutionProfile() {
       </div>
 
       <div className="profile-card">
-        <span className="profile-avatar">
-          {avatar ? <img src={avatar} alt="" /> : <BuildingIcon />}
-        </span>
+        <div className="profile-card-banner" />
 
-        <div className="profile-card-main">
-          <div className="profile-card-top">
-            <h2 className="profile-name">{user?.name || "Your Institution"}</h2>
-            <button type="button" className="profile-edit-btn" onClick={() => setEditOpen(true)}>
-              <PencilIcon />
-              Edit Profile
-            </button>
+        <div className="profile-card-content">
+          <span className="profile-avatar profile-avatar--floating">
+            {avatar ? <img src={avatar} alt="" /> : <BuildingIcon />}
+          </span>
+
+          <div className="profile-card-main">
+            <div className="profile-card-top">
+              <div className="profile-name-line">
+                <h2 className="profile-name">{user?.name || "Your Institution"}</h2>
+                <span className="badge">{TYPE_LABEL[user?.type] || user?.type || "Institution"}</span>
+                <span className="badge badge--active">
+                  <span className="badge-dot" />
+                  Active
+                </span>
+              </div>
+              <button type="button" className="profile-edit-btn" onClick={() => setEditOpen(true)}>
+                <PencilIcon />
+                Edit Profile
+              </button>
+            </div>
+            <p className="profile-meta">
+              Institution ID <strong>{extras.displayId}</strong>
+              <span className="profile-meta-sep" aria-hidden="true" />
+              Joined {formatDate(extras.joinedDate)}
+            </p>
           </div>
-          <div className="profile-badges">
-            <span className="badge">{TYPE_LABEL[user?.type] || user?.type || "Institution"}</span>
-            <span className="badge badge--active">
-              <span className="badge-dot" />
-              Active
-            </span>
-          </div>
-          <p className="profile-meta">
-            Institution ID: {extras.displayId} · Joined on {formatDate(extras.joinedDate)}
-          </p>
         </div>
       </div>
 

@@ -1,0 +1,114 @@
+.page-header-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.page-header-titles {
+  min-width: 0;
+}
+
+.page-header-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--navy-900);
+}
+
+.page-header-subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.page-header-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--navy-700);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.page-header-pill svg {
+  width: 16px;
+  height: 16px;
+}
+
+.page-header-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.page-header-sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1f9d6b;
+}
+
+.page-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-weight: 650;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.page-header-btn.outline {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--navy-900);
+}
+
+.page-header-btn.outline:hover {
+  background: var(--field-bg);
+}
+
+.page-header-btn.primary {
+  border: none;
+  background: var(--navy-700);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(36, 95, 169, 0.35);
+}
+
+.page-header-btn.primary:hover {
+  background: var(--accent-dark, #1c4c88);
+}
+
+@media (max-width: 640px) {
+  .page-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-header-actions {
+    justify-content: flex-start;
+  }
+}
