@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { BuildingIcon, LockIcon } from "../../components/Icons";
 import { changePassword, getUser } from "../../lib/auth";
 import { apiGet, apiPut } from "../../lib/api";
@@ -21,6 +22,10 @@ function formatDate(iso) {
 export default function InstitutionProfile() {
   const user = getUser();
   const institutionId = user?.id;
+  // Lets the sidebar/topbar avatars (rendered by InstitutionLayout, an
+  // ancestor of this route) pick up a new picture immediately, without a
+  // reload. Undefined when this page is rendered outside that layout.
+  const { setAvatarUrl } = useOutletContext() ?? {};
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -132,7 +137,12 @@ export default function InstitutionProfile() {
           institutionId={institutionId}
           profile={profile}
           onClose={() => setEditOpen(false)}
-          onProfileUpdated={(patch) => setProfile((p) => ({ ...p, ...patch }))}
+          onProfileUpdated={(patch) => {
+            setProfile((p) => ({ ...p, ...patch }));
+            if (patch.avatar_base64 !== undefined) {
+              setAvatarUrl?.(patch.avatar_base64);
+            }
+          }}
         />
       )}
     </div>
