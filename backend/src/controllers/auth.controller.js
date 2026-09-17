@@ -1,4 +1,4 @@
-import { login, changePassword } from "../services/auth.service.js";
+import { login, changePassword, getProfile } from "../services/auth.service.js";
 
 export const loginUser = async (req, res, next) => {
   try {
@@ -37,6 +37,15 @@ export const changeUserPassword = async (req, res, next) => {
       message: "Password changed successfully",
       ...result
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const currentUser = async (req, res, next) => {
+  try {
+    const profile = await getProfile(req.user);
+    return res.status(200).json(profile);
   } catch (error) {
     next(error);
   }
