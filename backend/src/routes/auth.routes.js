@@ -2,7 +2,8 @@ import express from "express";
 
 import {
   loginUser,
-  changeUserPassword
+  changeUserPassword,
+  currentUser
 } from "../controllers/auth.controller.js";
 
 import { authenticate } from "../middleware/auth.middleware.js";
@@ -18,5 +19,10 @@ router.post(
   authenticate({ allowPasswordChangeScope: true }),
   changeUserPassword
 );
+
+// A full token only. Somebody who still has to set their password is sent
+// straight to that screen, not to their profile - so there is no reason for
+// a password_change token to reach this.
+router.get("/me", authenticate(), currentUser);
 
 export default router;
