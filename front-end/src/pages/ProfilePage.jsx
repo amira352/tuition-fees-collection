@@ -5,31 +5,11 @@ import { changePassword, getToken, getUser } from "../lib/auth";
 import "./shared.css";
 import "../Styles/ProfilePage.css";
 
-// ---------------------------------------------------------------------------
-// BACKEND CONTRACT — see the hand-off notes at the end of the chat for the
-// full spec. Every fetch below is wrapped in its own try/catch so the page
-// still renders (using localStorage as a fallback) if an endpoint isn't
-// live yet — each section upgrades itself automatically once its endpoint
-// ships, no frontend change needed.
-//
-//   GET   /api/auth/me              -> { user: { id, email, fullName, branch,
-//                                        role, employeeCode, desk,
-//                                        lastLoginAt, lastLoginIp,
-//                                        createdAt } }
-//   PATCH /api/auth/me   { fullName } -> { user: {...} }
-//   GET   /api/payments/me/today    -> { count, total }
-//   GET   /api/bank/me/lookups      -> { lookups: [{ createdAt, resultFound }] }
-// ---------------------------------------------------------------------------
-
 const ROLE_LABEL = {
   admin: "System Administrator",
   back_office: "Back Office Agent",
 };
 
-// Static capability map. The system currently enforces a single binary role
-// check (back_office vs admin) everywhere, so this reflects what's actually
-// true today rather than data pulled from a permissions table that doesn't
-// exist. Swap for a real fetch if per-agent permissions are ever built.
 const ROLE_CAPABILITIES = {
   back_office: [
     "National ID Lookup",
@@ -55,15 +35,6 @@ const PASSWORD_RULES = [
     test: (p) => /[A-Za-z]/.test(p) && /\d/.test(p),
   },
 ];
-
-function decodeTokenExpiry(token) {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp ? new Date(payload.exp * 1000) : null;
-  } catch {
-    return null;
-  }
-}
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -118,9 +89,7 @@ export default function ProfilePage() {
           setNameDraft(data.user.fullName || "");
         }
       })
-      .catch(() => {
-        // /auth/me isn't live yet — keep showing what's cached from login.
-      });
+      .catch(() => {});
 
     apiGet("/payments/me/today")
       .then((data) => !cancelled && setTodayStats(data))
@@ -138,17 +107,23 @@ export default function ProfilePage() {
   const role = profile?.role || localUser?.role;
   const isAdmin = role === "admin";
   const capabilities = ROLE_CAPABILITIES[role] || [];
-  const sessionExpiry = decodeTokenExpiry(getToken());
 
   async function handleSaveName(event) {
     event.preventDefault();
     setSavingName(true);
     try {
       const data = await apiPatch("/auth/me", { fullName: nameDraft.trim() });
-      if (data?.user) setProfile(data.user);
+      if (data?.user) {
+        setProfile(data.user);
+        // Sync local storage cache
+        const cached = getUser();
+        if (cached) {
+          localStorage.setItem("user", JSON.stringify({ ...cached, fullName: data.user.fullName }));
+        }
+      }
       setEditingName(false);
     } catch {
-      // PATCH /auth/me isn't live yet — nothing to do but let the user retry later.
+      // API fallback handling
     } finally {
       setSavingName(false);
     }
@@ -233,9 +208,6 @@ export default function ProfilePage() {
             </h2>
           )}
 
-          {profile?.employeeCode && (
-            <span className="profile-meta mono">Employee ID: {profile.employeeCode}</span>
-          )}
           <span className="profile-meta">{profile?.email}</span>
 
           <div className="profile-badges">
@@ -243,7 +215,6 @@ export default function ProfilePage() {
               {ROLE_LABEL[role] || "Back Office Agent"}
             </span>
             {profile?.branch && <span className="profile-branch-pill">{profile.branch}</span>}
-            {profile?.desk && <span className="profile-branch-pill">{profile.desk}</span>}
           </div>
         </div>
       </div>
@@ -266,29 +237,36 @@ export default function ProfilePage() {
           </ul>
         </div>
 
-        {/* Security & session */}
+        {/* Security */}
         <div className="card">
           <h3 className="profile-card-title">Security</h3>
           <dl className="profile-facts">
             <div>
-              <dt>Last login</dt>
-              <dd>{formatDateTime(profile?.lastLoginAt)}</dd>
+              <dt>Password last changed</dt>
+              <dd>{formatDateTime(profile?.password_changed_at || profile?.passwordChangedAt)}</dd>
             </div>
-            <div>
-              <dt>Last login IP</dt>
-              <dd>{profile?.lastLoginIp || "—"}</dd>
-            </div>
-            <div>
-              <dt>Session expires</dt>
-              <dd>{sessionExpiry ? formatDateTime(sessionExpiry) : "—"}</dd>
-            </div>
+            {profile?.lastLoginAt && (
+              <div>
+                <dt>Last login</dt>
+                <dd>{formatDateTime(profile.lastLoginAt)}</dd>
+              </div>
+            )}
+            {profile?.lastLoginIp && (
+              <div>
+                <dt>Last login IP</dt>
+                <dd>{profile.lastLoginIp}</dd>
+              </div>
+            )}
           </dl>
 
           {!showPasswordForm ? (
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => setShowPasswordForm(true)}
+              onClick={() => {
+                setPwSuccess("");
+                setShowPasswordForm(true);
+              }}
             >
               Change password
             </button>
