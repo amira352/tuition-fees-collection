@@ -30,12 +30,16 @@ router.post(
 
 // ADDED — BE-3 item 1. Reuses the same /api/bank namespace already mounted
 // in app.js, per the ticket's instruction, rather than inventing a second one.
+//
+// Same roles as /parents/search above: the two are used by the same screen,
+// so allowing one and not the other leaves an admin with a search that works
+// and a customer panel that 403s.
 router.get(
   "/customers/:nationalId/accounts",
 
   authenticate(),
 
-  authorizeRoles("back_office"),
+  authorizeRoles("back_office", "admin"),
 
   getAccounts
 );
