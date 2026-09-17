@@ -461,32 +461,17 @@ export default function UploadDues() {
           <div className="steps-progress">
             <div className="steps-progress-item">
               <span className="steps-progress-circle is-current">1</span>
-              <div className="steps-progress-copy">
-                <span className="steps-progress-title">Download Template</span>
-                <span className="steps-progress-desc">
-                  Get the predefined Excel template with the exact required column structure.
-                </span>
-              </div>
+              <span className="steps-progress-title">Download Template</span>
             </div>
             <span className="steps-progress-line" />
             <div className="steps-progress-item">
               <span className="steps-progress-circle">2</span>
-              <div className="steps-progress-copy">
-                <span className="steps-progress-title">Fill the Template</span>
-                <span className="steps-progress-desc">
-                  Fill in the required student and fee details. Do not modify or remove column headers.
-                </span>
-              </div>
+              <span className="steps-progress-title">Fill the Template</span>
             </div>
             <span className="steps-progress-line" />
             <div className="steps-progress-item">
               <span className="steps-progress-circle">3</span>
-              <div className="steps-progress-copy">
-                <span className="steps-progress-title">Upload File</span>
-                <span className="steps-progress-desc">
-                  Upload your completed .xlsx file for validation and import.
-                </span>
-              </div>
+              <span className="steps-progress-title">Upload File</span>
             </div>
           </div>
 
@@ -501,9 +486,6 @@ export default function UploadDues() {
                 </div>
                 <div className="upload-section-body">
                   <h2 className="upload-section-title">1. Download Template</h2>
-                  <p className="upload-section-desc">
-                    Get the predefined Excel template with the exact required column structure.
-                  </p>
                   <button
                     type="button"
                     className="step-btn secondary"
@@ -524,10 +506,10 @@ export default function UploadDues() {
                   </svg>
                 </div>
                 <div className="upload-section-body">
-                  <h2 className="upload-section-title">2. Required Columns</h2>
-                  <p className="upload-section-desc">
-                    Make sure your file includes the following columns (do not modify or remove them).
-                  </p>
+                  <div className="upload-section-title-row">
+                    <h2 className="upload-section-title">2. Required Columns</h2>
+                    <span className="upload-section-tag">{REQUIRED_HEADERS.length} required</span>
+                  </div>
                   <div className="column-tags">
                     {REQUIRED_HEADERS.map((h) => (
                       <span key={h} className="col-tag">{h}</span>
@@ -544,9 +526,6 @@ export default function UploadDues() {
                 </div>
                 <div className="upload-section-body">
                   <h2 className="upload-section-title">3. Upload File</h2>
-                  <p className="upload-section-desc">
-                    Upload your completed <code>.xlsx</code> file for validation and import.
-                  </p>
 
                   {/* Drag and Drop Zone */}
                   <div
