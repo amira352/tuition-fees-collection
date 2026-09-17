@@ -4,12 +4,14 @@ import jwt from "jsonwebtoken";
 import {
   findBankEmployeeByemail,
   findBankEmployeeById,
+  findBankEmployeeProfile,
   updateBankEmployeePassword
 } from "../repositories/bankEmployee.repository.js";
 
 import {
   findInstitutionByEmail,
   findInstitutionById,
+  findInstitutionProfile,
   updateInstitutionPassword
 } from "../repositories/institution.repository.js";
 
@@ -209,5 +211,109 @@ export const changePassword = async (
     token,
     role,
     mustChangePassword: false
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Profile
+// ---------------------------------------------------------------------------
+
+const ROLE_LABELS = {
+  admin: "System Administrator",
+  back_office: "Back Office Agent",
+  institution: "Institution"
+};
+
+// What each role is actually allowed to do, written to match the route
+// guards rather than stored in a table. A stored list would drift the first
+// time somebody changes a requireRole and forgets the copy - and a profile
+// page that lies about permissions is worse than one that shows none.
+const PERMISSIONS = {
+  admin: [
+    { key: "national_id_lookup", label: "National ID lookup" },
+    { key: "collect_fees", label: "Manual fee collection" },
+    { key: "issue_receipts", label: "Issue official receipts" },
+    { key: "epp_plans", label: "EPP plan activation" },
+    { key: "view_all_payments", label: "View all payment history" },
+    { key: "manage_staff", label: "Create back-office staff" },
+    { key: "manage_institutions", label: "Register institutions" }
+  ],
+  back_office: [
+    { key: "national_id_lookup", label: "National ID lookup" },
+    { key: "collect_fees", label: "Manual fee collection" },
+    { key: "issue_receipts", label: "Issue official receipts" },
+    { key: "epp_plans", label: "EPP plan activation" },
+    { key: "view_all_payments", label: "View all payment history" }
+  ],
+  institution: [
+    { key: "upload_fees", label: "Upload fee files" },
+    { key: "view_own_payments", label: "View payments for this institution" }
+  ]
+};
+
+const accountNotFound = () => {
+  const error = new Error("Account not found");
+  error.statusCode = 404;
+  error.code = "NOT_FOUND";
+  return error;
+};
+
+/**
+ * Everything the profile page shows about whoever is signed in.
+ *
+ * Works for all three roles. The token only carries a user id and a role, so
+ * without this the page has nothing to display after a refresh.
+ *
+ * `exp` comes off the verified token, which means the session expiry needs no
+ * database round trip - it is already in the thing the caller sent us.
+ */
+export const getProfile = async ({ userId, role, exp }) => {
+  const isInstitution = role === "institution";
+
+  const account = isInstitution
+    ? await findInstitutionProfile(userId)
+    : await findBankEmployeeProfile(userId);
+
+  if (!account) {
+    throw accountNotFound();
+  }
+
+  const effectiveRole = isInstitution ? "institution" : account.role || "back_office";
+
+  return {
+    identity: {
+      id: account.id,
+      display_name: isInstitution ? account.name : account.full_name,
+      email: account.email,
+      role: effectiveRole,
+      role_label: ROLE_LABELS[effectiveRole] || effectiveRole,
+      branch: isInstitution ? null : account.branch || null,
+      institution_type: isInstitution ? account.type || null : null,
+      member_since: account.created_at || null
+    },
+
+    access: {
+      // An institution only ever sees its own rows. Bank staff see the whole
+      // network. Same rule the dashboard and payment history already use.
+      scope: isInstitution ? "institution" : "network",
+      is_admin: effectiveRole === "admin",
+      permissions: PERMISSIONS[effectiveRole] || []
+    },
+
+    security: {
+      // null means the password has never been changed since the admin
+      // created the account, which is worth showing rather than hiding.
+      password_changed_at: account.password_changed_at || null,
+      must_change_password: account.must_change_password === true,
+      is_active: account.is_active !== false,
+      session_expires_at: exp ? new Date(exp * 1000).toISOString() : null,
+
+      // Reported honestly. There is no second factor anywhere in this system,
+      // so the page says so instead of showing a badge that means nothing.
+      mfa: {
+        enabled: false,
+        reason: "Two-factor authentication is not implemented in this system"
+      }
+    }
   };
 };

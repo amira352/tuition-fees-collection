@@ -10,6 +10,19 @@ const BASE_FIELDS = `
   is_active
 `;
 
+// Same reasoning as bankEmployee.repository.js - no password_hash here, so
+// there is nothing to forget to strip.
+const PROFILE_FIELDS = `
+  id,
+  name,
+  type,
+  email,
+  must_change_password,
+  is_active,
+  created_at,
+  password_changed_at
+`;
+
 export const findInstitutionByEmail = async (email) => {
   const { data, error } = await supabase
     .from("institutions")
@@ -28,6 +41,20 @@ export const findInstitutionById = async (id) => {
   const { data, error } = await supabase
     .from("institutions")
     .select(BASE_FIELDS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
+export const findInstitutionProfile = async (id) => {
+  const { data, error } = await supabase
+    .from("institutions")
+    .select(PROFILE_FIELDS)
     .eq("id", id)
     .maybeSingle();
 
@@ -97,4 +124,3 @@ export const listInstitutions = async () => {
 
   return data;
 };
-
