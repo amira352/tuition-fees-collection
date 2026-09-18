@@ -1,6 +1,5 @@
 import {
   authoriseFromAccount,
-  authoriseCard,
   reverseAuthorisation
 } from "./bank.client.js";
 
@@ -74,20 +73,19 @@ export const validateShape = ({ parentId, items, tenders }) => {
       throw badRequest(`Account ${i + 1} must be "account", "cash", or "card"`, "tenders");
     }
 
-    if (tender.method === "account" && !tender.account_ref) {
-      throw badRequest(`Account ${i + 1} is missing account_ref`, "tenders");
-    }
-
-    // Card details are read from the request and handed straight to the bank.
-    // They are never written to payment_tenders - storing a CVV is forbidden
-    // under PCI DSS, and a PAN needs the whole system to be PCI compliant.
-    // What gets stored is what comes back: the masked number and the bank's
-    // own payment id.
-    if (tender.method === "card") {
-      if (!tender.card || !tender.card.number || !tender.card.expiry_month ||
-          !tender.card.expiry_year || !tender.card.cvv) {
-        throw badRequest(`Account ${i + 1} is missing full card details`, "tenders");
-      }
+    // An account and a card are the same kind of thing now: a source the
+    // back office picked from the customer's own list, identified by
+    // acc_... or card_.... The card number never reaches this system, so
+    // there is no PAN and no CVV to protect - which is why the whole block
+    // of card validation that used to live here is gone.
+    //
+    // method is kept because a receipt has to be able to say "paid by card"
+    // rather than "paid by source", but it is a label now, not a branch.
+    if (tender.method !== "cash" && !tender.account_ref) {
+      throw badRequest(
+        `Account ${i + 1} is missing account_ref - send the account_id or card_id from the customer lookup`,
+        "tenders"
+      );
     }
 
     if (!isPositiveAmount(tender.amount)) {
@@ -96,10 +94,9 @@ export const validateShape = ({ parentId, items, tenders }) => {
   });
 };
 
-// What the idempotency fingerprint is taken over. Deliberately not the raw
-// request: a card number never goes into a hash. The last four digits are
-// enough to tell two different cards apart, which is all the fingerprint
-// needs to do.
+// What the idempotency fingerprint is taken over. There is nothing secret in
+// a tender any more - account_ref is a reference the bank issued, not a card
+// number - so this is now just the request with the noise removed.
 const fingerprintInput = ({ parentId, items, tenders, paymentType }) => ({
   parentId,
   paymentType,
@@ -107,10 +104,7 @@ const fingerprintInput = ({ parentId, items, tenders, paymentType }) => ({
   tenders: tenders.map((t) => ({
     method: t.method,
     account_ref: t.account_ref || null,
-    amount: t.amount,
-    card_last4: t.card && t.card.number
-      ? String(t.card.number).replace(/\D/g, "").slice(-4)
-      : null
+    amount: t.amount
   }))
 });
 
@@ -141,7 +135,6 @@ const runPayment = async (
 
   const approved = [];
   let declined = null;
-  let needsOtp = null;
   let outcomeUnknown = false;
 
   for (const stored of storedTenders) {
@@ -151,62 +144,58 @@ const runPayment = async (
       continue;
     }
 
-    // The card itself never came back from the database - it is not stored
-    // there. Match the saved tender to the one in the request by amount and
-    // position so we can hand the bank the details the caller sent.
-    const fromRequest =
-      tenders.find(
-        (t) => t.method === stored.method && Number(t.amount) === Number(stored.amount)
-      ) || {};
-
+    // Cards and accounts take the same path. The bank's back-office endpoint
+    // charges whatever source_id it is given, so there is nothing left to
+    // branch on - and nothing to look back up from the original request,
+    // because everything it needs was already stored.
     try {
-      const result =
-        stored.method === "card"
-          ? await authoriseCard({
-              card: fromRequest.card,
-              amount: stored.amount,
-              // the bank caps order_reference at 40 characters, and two
-              // joined uuids are 73. first eight of each is still unique
-              // enough to tell one leg of one payment from any other
-              orderReference: `${paymentId.slice(0, 8)}-${stored.id.slice(0, 8)}`,
-              nationalId: fromRequest.national_id,
-              mobile: fromRequest.mobile
-            })
-          : await authoriseFromAccount({
-              accountRef: stored.account_ref,
-              amount: stored.amount
-            });
-
-      // The bank has accepted the card but wants an OTP from the customer.
-      // That is not a decline - there is a real authorisation sitting open
-      // at the bank. Treating it as declined would tell the customer their
-      // payment failed while their money is held.
-      if (result.status === "PENDING_3DS") {
-        needsOtp = { tender: stored, providerRef: result.providerRef };
-        break;
-      }
+      const result = await authoriseFromAccount({
+        accountRef: stored.account_ref,
+        amount: stored.amount
+      });
 
       if (!result.approved) {
         declined = { tender: stored, reason: result.reason };
         break;
       }
 
-      // For a card the bank hands back the masked number. That is the only
-      // part of a card we are allowed to keep, and without it a receipt
-      // cannot say which card was used.
-      const masked =
-        result.raw && result.raw.card ? result.raw.card.masked_number : null;
+      // The bank echoes back which source it charged. For a card that is the
+      // masked number, for an account the account number - either way it is
+      // what a receipt should print, rather than an internal id like
+      // card_mona_visa. The bank's own payment id is kept separately in
+      // provider_ref, so reconciliation does not depend on this.
+      const source = (result.raw && result.raw.source) || {};
+      const shownAs = source.masked_number || source.account_number || null;
 
       approved.push({
         tender_id: stored.id,
         provider_ref: result.providerRef,
-        account_ref: masked
+        account_ref: shownAs || stored.account_ref
       });
     } catch (err) {
       if (err.outcomeUnknown) {
         outcomeUnknown = true;
         break;
       }
+
+      // The bank refused before any money moved - the source does not exist,
+      // or it is blocked, frozen, dormant or expired.
+      //
+      // This used to rethrow, which walked straight out of the function and
+      // left the payment row sitting at pending. A pending payment holds its
+      // fees, so one blocked card meant that fee could never be paid again -
+      // not by another card, not by cash - until somebody edited the row by
+      // hand. It is a decline with a better message, so it cleans up like one.
+      if (err.statusCode === 404 || err.statusCode === 422) {
+        declined = {
+          tender: stored,
+          reason: err.message,
+          statusCode: err.statusCode,
+          code: err.code
+        };
+        break;
+      }
+
       throw err;
     }
   }
@@ -223,51 +212,66 @@ const runPayment = async (
     throw error;
   }
 
-  if (needsOtp) {
-    // Do not try to cancel the 3-D Secure charge. The bank only allows a
-    // void on an AUTHORISED payment, and this one is PENDING_3DS with
-    // captured_amount 0 - no money has moved, so abandoning it is safe.
-    // Any leg that DID go through still has to come back.
-    for (const done of approved) {
-      if (done.provider_ref) {
-        await reverseAuthorisation(done.provider_ref);
-      }
-    }
-
-    await markPaymentFailed(
-      paymentId,
-      "This card needs 3-D Secure, which is not supported yet"
-    );
-
-    const error = new Error(
-      "This card requires a one-time password from the customer's bank. That is not supported yet - please use another card or pay from an account."
-    );
-    error.statusCode = 501;
-    error.code = "THREE_DS_NOT_SUPPORTED";
-    error.field = null;
-    throw error;
-  }
-
   if (declined) {
     // put back whatever we already took, then fail the whole payment.
     // no fee is left half settled.
+    //
+    // Every reversal is wrapped, because this is cleanup and cleanup must not
+    // throw. If one of these escapes, markPaymentFailed below never runs: the
+    // payment stays pending, the fee stays locked behind it, AND the money is
+    // still sitting at the bank. A reversal that fails needs a person to look
+    // at it - it must not also take a fee out of service.
+    const reversalFailures = [];
+
     for (const done of approved) {
-      if (done.provider_ref) {
-        await reverseAuthorisation(done.provider_ref);
+      if (!done.provider_ref) {
+        continue;
+      }
+
+      try {
+        await reverseAuthorisation(
+          done.provider_ref,
+          `Another leg of payment ${paymentId.slice(0, 8)} was declined`
+        );
+      } catch (err) {
+        console.error(
+          `reversal FAILED for ${done.provider_ref} on payment ${paymentId}:`,
+          err.message
+        );
+        reversalFailures.push(done.provider_ref);
       }
     }
 
-    // a card has no account_ref yet at this point, so fall back to the method
     const where = declined.tender.account_ref || declined.tender.method;
 
-    await markPaymentFailed(paymentId, `Declined on ${where}: ${declined.reason}`);
+    // Written into failure_reason so it shows up on the payment history
+    // screen. Somebody has been charged for a payment that failed, and that
+    // has to be visible rather than living only in a server log.
+    const stuck = reversalFailures.length
+      ? ` — WARNING: could not reverse ${reversalFailures.join(", ")}, needs manual reconciliation`
+      : "";
+
+    await markPaymentFailed(paymentId, `Declined on ${where}: ${declined.reason}${stuck}`);
 
     const error = new Error(
       `Payment declined on ${where}: ${declined.reason}`
     );
-    error.statusCode = 402;
-    error.code = "CARD_DECLINED";
+
+    // Pass the bank's own distinction through rather than flattening it to
+    // 402. CARD_BLOCKED and ACCOUNT_NOT_ACTIVE are things the counter can act
+    // on - ask for a different card - while SOURCE_NOT_FOUND means we sent a
+    // reference that does not exist, which is our bug, not the customer's.
+    error.statusCode = declined.statusCode || 402;
+    error.code = declined.code || "CARD_DECLINED";
     error.field = null;
+
+    if (reversalFailures.length) {
+      error.details = {
+        payment_id: paymentId,
+        not_reversed: reversalFailures
+      };
+    }
+
     throw error;
   }
 
