@@ -10,52 +10,66 @@ const PAYMENT_AMOUNT_OPTIONS = [
     key: "full",
     title: "Full Settlement",
     badge: "Recommended",
-    desc: (total, currency) => `Clear entire outstanding balance (${currency} ${total.toLocaleString()})`
+    desc: (total, currency) => `Clear entire outstanding balance (${currency} ${total.toLocaleString()})`,
   },
   {
     key: "partial",
     title: "Custom Partial Amount",
     badge: "Flexible",
-    desc: () => "Choose a custom amount to pay towards balance today"
+    desc: () => "Choose a custom amount to pay towards balance today",
   },
   {
     key: "epp",
     title: "CIB Easy Payment Plan",
-    badge: "0% Interest Options",
-    desc: () => "Split payment into 3, 6, 12 or 18 equal monthly instalments"
+    badge: "Instalments",
+    desc: () => "Split payment into 3, 6, 12 or 18 monthly instalments · credit card only",
   },
 ];
 
 const PAYMENT_METHOD_OPTIONS = [
   {
+    key: "transfer",
+    tenderMethod: "account",
+    title: "Bank Transfer",
+    desc: "Deduct from one of the customer's CIB accounts",
+    tag: "Same-bank",
+  },
+  {
     key: "card",
+    tenderMethod: "card",
     title: "Credit / Debit Card",
-    desc: "Deduct from linked CIB account / authorized card",
-    tag: "Instant"
+    desc: "Charge one of the customer's cards",
+    tag: "Instant",
   },
   {
     key: "cash",
+    tenderMethod: "cash",
     title: "Branch Cash Deposit",
-    desc: "Generate teller slip for counter payment",
-    tag: "Branch"
+    desc: "Handed over at the counter",
+    tag: "Branch",
   },
 ];
 
 const EPP_TENORS = [3, 6, 12, 18];
+const EPP_MIN_AMOUNT = 1000;
+const EPP_MAX_AMOUNT = 500000;
 
 const ERROR_COPY = {
   CARD_DECLINED: (msg) => msg || "The payment was declined. Try a different card or account.",
   THREE_DS_NOT_SUPPORTED: () =>
-    "This card requires a one-time password (3-D Secure), which isn't supported yet. Use a different card or pay from an account.",
+    "This card requires a one-time password (3-D Secure), which isn't supported yet. Use a different card, or pay by bank transfer.",
   PAYMENT_OUTCOME_UNKNOWN: () =>
-    "The bank did not confirm or deny this charge. Payment is pending manual reconciliation — do NOT retry.",
+    "The bank didn't confirm or deny this charge, so the money may already have moved. Do NOT retry — this payment is pending manual reconciliation.",
   IDEMPOTENCY_CONFLICT: () =>
-    "A payment with these exact details is already being processed. Please wait a moment.",
+    "This payment reference has already been used for different details. Refresh the page and start again.",
   VALIDATION_ERROR: (msg) => msg || "Some details on this payment are invalid.",
-  EPP_REQUIRES_FULL_PAYMENT: () => "EPP installment plans require settling the full balance.",
-  EPP_REQUIRES_CARD: () => "EPP requires an authorized credit card tender.",
-  ALREADY_CONVERTED: () => "An installment plan has already been established for this payment.",
-  CARD_NOT_ELIGIBLE: () => "This card is not eligible for installment plans (credit cards only)."
+  BANK_REJECTED_REQUEST: (msg) => msg || "The bank rejected this charge.",
+  EPP_REQUIRES_FULL_PAYMENT: () => "Instalment plans need the full balance settled in one card payment.",
+  EPP_REQUIRES_CARD: () => "Instalment plans can only be created from a card payment.",
+  PAYMENT_NOT_CONVERTIBLE: (msg) => msg || "This payment can't be converted to instalments.",
+  ALREADY_CONVERTED: () => "This payment already has an instalment plan.",
+  CARD_NOT_ELIGIBLE: () => "That card isn't eligible for instalments — credit cards only.",
+  UNSUPPORTED_TENOR: (msg) => msg || "That instalment length isn't available.",
 };
 
 function formatAmount(amount, currency = "EGP") {
@@ -68,6 +82,7 @@ export default function FeePaymentPage() {
 
   const invoices = location.state?.invoices ?? [];
   const parent = location.state?.parent ?? null;
+  const nationalId = location.state?.nationalId ?? parent?.nationalId ?? parent?.national_id ?? null;
 
   const total = useMemo(() => invoices.reduce((sum, inv) => sum + inv.amount, 0), [invoices]);
 
@@ -81,15 +96,20 @@ export default function FeePaymentPage() {
   const [amountOption, setAmountOption] = useState("full");
   const [partialAmount, setPartialAmount] = useState("");
   const [eppTenor, setEppTenor] = useState(EPP_TENORS[2]);
-  const [methodOption, setMethodOption] = useState("card");
+  const [methodOption, setMethodOption] = useState("transfer");
   const [isProcessing, setIsProcessing] = useState(false);
   const [formError, setFormError] = useState("");
-  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showSourceModal, setShowSourceModal] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
 
-  // EPP Quotes state wired to GET /api/epp/quotes?amount=
   const [eppQuotes, setEppQuotes] = useState([]);
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false);
+
+  const idempotencyKeyRef = useRef(
+    window.crypto?.randomUUID
+      ? window.crypto.randomUUID()
+      : `pay-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
 
   const partialAmountNumber = Number(partialAmount);
   const isPartialValid =
@@ -97,46 +117,50 @@ export default function FeePaymentPage() {
     (partialAmount.trim() !== "" && partialAmountNumber > 0 && partialAmountNumber <= total);
 
   const amountDue = amountOption === "partial" ? partialAmountNumber : total;
+  const isEpp = amountOption === "epp";
+
+  const isEppEligibleAmount = total >= EPP_MIN_AMOUNT && total <= EPP_MAX_AMOUNT;
+
+  const methodOptions = isEpp
+    ? PAYMENT_METHOD_OPTIONS.filter((opt) => opt.key === "card")
+    : PAYMENT_METHOD_OPTIONS;
+
+  const activeMethod = PAYMENT_METHOD_OPTIONS.find((opt) => opt.key === methodOption);
 
   const canConfirm =
     !isBlocked &&
     !!parent &&
     invoices.length > 0 &&
-    amountOption &&
-    methodOption &&
+    !!activeMethod &&
     isPartialValid &&
+    amountDue > 0 &&
+    (!isEpp || isEppEligibleAmount) &&
     !isProcessing;
 
-  // Fetch live EPP quotes from the backend whenever EPP is selected
   useEffect(() => {
-    if (amountOption !== "epp" || !total || total <= 0) return;
+    if (!isEpp || !total || !isEppEligibleAmount) return;
 
     let isMounted = true;
-    async function loadEppQuotes() {
-      setIsLoadingQuotes(true);
-      try {
-        const res = await apiGet(`/epp/quotes?amount=${total}`);
-        const quotesArray = Array.isArray(res) ? res : res?.quotes || [];
-        if (isMounted) {
-          setEppQuotes(quotesArray);
-        }
-      } catch (err) {
-        console.warn("Could not retrieve live EPP quotes:", err);
-      } finally {
-        if (isMounted) setIsLoadingQuotes(false);
-      }
-    }
+    setIsLoadingQuotes(true);
 
-    loadEppQuotes();
+    apiGet(`/epp/quotes?amount=${total}`)
+      .then((res) => {
+        if (!isMounted) return;
+        setEppQuotes(Array.isArray(res) ? res : res?.quotes || res?.options || []);
+      })
+      .catch((err) => {
+        console.warn("Couldn't load EPP quotes:", err.message);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingQuotes(false);
+      });
 
     return () => {
       isMounted = false;
     };
-  }, [amountOption, total]);
+  }, [isEpp, total, isEppEligibleAmount]);
 
-  const setPresetPartial = (fraction) => {
-    setPartialAmount(String(Math.round(total * fraction)));
-  };
+  const setPresetPartial = (fraction) => setPartialAmount(String(Math.round(total * fraction)));
 
   function buildPaymentItems(allocatedTotal) {
     let remaining = allocatedTotal;
@@ -150,138 +174,96 @@ export default function FeePaymentPage() {
     });
   }
 
-  const idempotencyKeysRef = useRef(new Map());
+  function buildTender(source) {
+    const amount = amountDue;
 
-  function getIdempotencyKeyFor(signature) {
-    const sigStr = JSON.stringify(signature);
-    const map = idempotencyKeysRef.current;
-    if (!map.has(sigStr)) {
-      const key = window.crypto?.randomUUID
-        ? window.crypto.randomUUID()
-        : `pay-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      map.set(sigStr, key);
+    if (activeMethod.tenderMethod === "cash") {
+      return { method: "cash", amount };
     }
-    return map.get(sigStr);
+
+    if (activeMethod.tenderMethod === "account") {
+      return { method: "account", account_ref: source.accountRef, amount };
+    }
+
+    return {
+      method: "card",
+      amount,
+      card: source.card,
+      national_id: nationalId || undefined,
+      mobile: source.mobile,
+    };
   }
 
-  async function handleConfirm(selectedAccount = null) {
+  async function handleConfirm(source = null) {
     setFormError("");
     if (!canConfirm) return;
 
-    if (methodOption === "card" && !selectedAccount) {
-      setFormError("Select an account or card before confirming.");
+    if (isEpp && !isEppEligibleAmount) {
+      setFormError(`EPP is available between ${EPP_MIN_AMOUNT} and ${EPP_MAX_AMOUNT.toLocaleString()} EGP.`);
       return;
     }
 
-    setShowAccountModal(false);
+    if (activeMethod.tenderMethod !== "cash" && !source) {
+      setFormError("Choose a funding source before confirming.");
+      return;
+    }
+
+    setShowSourceModal(false);
     setIsProcessing(true);
 
     try {
-      const items = buildPaymentItems(amountDue);
-      const isEpp = amountOption === "epp";
-
-      // Backend tender rules: EPP requires method="card"; account deduction requires method="account"
-      let tenderPayload;
-      if (methodOption === "cash") {
-        tenderPayload = {
-          method: "cash",
-          amount: amountDue,
-        };
-      } else if (isEpp) {
-        tenderPayload = {
-          method: "card",
-          amount: amountDue,
-          card: {
-            number: selectedAccount?.cardNumber || "4111111111111111",
-            expiry_month: "12",
-            expiry_year: "28",
-            cvv: "123",
-          },
-          national_id: parent.nationalId || parent.national_id,
-        };
-      } else {
-        tenderPayload = {
-          method: "account",
-          account_ref: selectedAccount?.account_number || selectedAccount?.id || "ACC-DEFAULT",
-          amount: amountDue,
-        };
-      }
-
-      // Base payment payload: EPP must be submitted with paymentType: "full"
       const requestBody = {
         parentId: parent.id,
-        items,
-        tenders: [tenderPayload],
+        items: buildPaymentItems(amountDue),
+        tenders: [buildTender(source)],
         paymentType: isEpp ? "full" : amountOption,
       };
 
-      const idempotencyKey = getIdempotencyKeyFor(requestBody);
-
-      // 1. Process payment via POST /api/payments
       const response = await apiPost("/payments", requestBody, {
-        headers: { "Idempotency-Key": idempotencyKey },
+        headers: { "Idempotency-Key": idempotencyKeyRef.current },
       });
 
       const payment = response.payment;
       let eppPlan = null;
 
-      // 2. If EPP, register plan via POST /api/epp
       if (isEpp) {
-        const planResult = await apiPost("/epp", {
-          paymentId: payment.id,
-          tenorMonths: eppTenor,
-        });
-        eppPlan = planResult.plan || planResult;
+        try {
+          eppPlan = await apiPost("/epp", { paymentId: payment.id, tenorMonths: eppTenor });
+        } catch (planErr) {
+          const copy = ERROR_COPY[planErr.code];
+          setFormError(
+            copy ? copy(planErr.message) : planErr.message || "EPP setup failed. Payment was completed."
+          );
+          return;
+        }
       }
 
-      // 3. Fetch official formatted receipt via GET /api/receipts/payment/:paymentId
-      let receiptData = null;
+      let receiptData;
       try {
         const receiptRes = await apiGet(`/receipts/payment/${payment.id}`);
         receiptData = receiptRes.receipt;
       } catch {
-        receiptData = {
-          receipt_number: `RC-${payment.id.slice(0, 8).toUpperCase()}`,
-          total: payment.amount ?? amountDue,
-          paid_on: payment.created_at || new Date().toISOString(),
-          payer: parent.name,
-          institution: invoices[0]?.school,
-          lines: invoices.map((inv) => ({
-            student: inv.studentName,
-            institution: inv.school,
-            fee_type: inv.feeCategory,
-            period: inv.academicTerm,
-            paid: inv.amount,
-          })),
-          paid_from: [
-            {
-              method: tenderPayload.method,
-              account: selectedAccount?.maskedNumber || tenderPayload.account_ref || "Counter Cash",
-              amount: amountDue,
-            },
-          ],
-        };
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        try {
+          const retryRes = await apiGet(`/receipts/payment/${payment.id}`);
+          receiptData = retryRes.receipt;
+        } catch {
+          receiptData = null;
+        }
       }
 
       navigate("/receipt", {
         state: {
-          receipt: {
-            ...receiptData,
-            amountPaid: receiptData.total || amountDue,
-            amountCurrency: invoiceCurrency,
-            method: methodOption,
-            eppPlan,
-          },
+          receipt: receiptData,
+          fallbackPayment: receiptData ? null : payment,
+          eppPlan,
         },
       });
     } catch (err) {
-      const code = err.code || err.response?.data?.code;
-      const copyFn = ERROR_COPY[code];
-      setFormError(
-        copyFn ? copyFn(err.message) : err.message || "We couldn't process this payment. Please try again."
-      );
+      const copyFn = ERROR_COPY[err.code];
+      setFormError(copyFn ? copyFn(err.message) : err.message || "We couldn't process this payment.");
 
-      if (code === "PAYMENT_OUTCOME_UNKNOWN") {
+      if (err.code === "PAYMENT_OUTCOME_UNKNOWN") {
         setIsBlocked(true);
       }
     } finally {
@@ -292,12 +274,12 @@ export default function FeePaymentPage() {
   function handleConfirmClick() {
     if (!canConfirm) return;
 
-    if (methodOption === "card") {
-      setShowAccountModal(true);
+    if (activeMethod.tenderMethod === "cash") {
+      handleConfirm();
       return;
     }
 
-    handleConfirm();
+    setShowSourceModal(true);
   }
 
   if (invoices.length === 0) {
@@ -334,7 +316,6 @@ export default function FeePaymentPage() {
         </div>
       </div>
 
-      {/* Invoice Breakdown */}
       <div className="card fee-summary-card">
         <div className="summary-card-header">
           <span className="summary-heading">Selected Outstanding Fees</span>
@@ -354,9 +335,7 @@ export default function FeePaymentPage() {
               <tr key={inv.id}>
                 <td className="student-name-cell">{inv.studentName}</td>
                 <td><span className="fee-badge">{inv.feeCategory}</span></td>
-                <td className="text-right fee-amount-cell">
-                  {formatAmount(inv.amount, inv.currency)}
-                </td>
+                <td className="text-right fee-amount-cell">{formatAmount(inv.amount, inv.currency)}</td>
               </tr>
             ))}
           </tbody>
@@ -370,15 +349,13 @@ export default function FeePaymentPage() {
         </div>
       </div>
 
-      {/* Configuration */}
       <div className="card pay-config-card">
-        {/* Step 1: Payment Allocation */}
         <section className="config-section">
           <div className="section-title-wrap">
             <span className="section-num">01</span>
             <div>
               <h2 className="section-title">Select Payment Allocation</h2>
-              <p className="section-desc">Choose between immediate full settlement, custom partial amount, or EPP</p>
+              <p className="section-desc">Full settlement, a custom partial amount, or instalments</p>
             </div>
           </div>
 
@@ -393,9 +370,7 @@ export default function FeePaymentPage() {
                   disabled={isBlocked}
                   onClick={() => {
                     setAmountOption(opt.key);
-                    if (opt.key === "epp") {
-                      setMethodOption("card");
-                    }
+                    if (opt.key === "epp") setMethodOption("card");
                   }}
                 >
                   <div className="option-head">
@@ -403,22 +378,17 @@ export default function FeePaymentPage() {
                     <span className="option-badge">{opt.badge}</span>
                   </div>
                   <strong className="option-title">{opt.title}</strong>
-                  <span className="option-desc">
-                    {opt.desc(total, invoiceCurrency)}
-                  </span>
+                  <span className="option-desc">{opt.desc(total, invoiceCurrency)}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Partial Payment Input */}
           {amountOption === "partial" && (
             <div className="partial-box">
               <div className="partial-header">
                 <div>
-                  <label className="partial-label" htmlFor="partial-input">
-                    Amount to Pay Today
-                  </label>
+                  <label className="partial-label" htmlFor="partial-input">Amount to Pay Today</label>
                   <span className="partial-sub">Maximum balance: {formatAmount(total, invoiceCurrency)}</span>
                 </div>
                 <div className="preset-chips">
@@ -451,19 +421,24 @@ export default function FeePaymentPage() {
             </div>
           )}
 
-          {/* EPP Tenors */}
-          {amountOption === "epp" && (
+          {isEpp && (
             <div className="epp-box">
               <span className="epp-label">Choose Installment Tenor</span>
-              {isLoadingQuotes ? (
-                <div className="epp-quotes-loading" style={{ color: "#64748b", fontSize: "0.85rem", padding: "0.5rem 0" }}>
-                  Calculating CIB installment rates…
+
+              {!isEppEligibleAmount ? (
+                <div className="field-error-bar" style={{ marginTop: "0.5rem" }}>
+                  EPP is available between {formatAmount(EPP_MIN_AMOUNT, invoiceCurrency)} and {formatAmount(EPP_MAX_AMOUNT, invoiceCurrency)}. Total balance of {formatAmount(total, invoiceCurrency)} is ineligible.
                 </div>
+              ) : isLoadingQuotes ? (
+                <p className="field-hint">Loading CIB instalment rates…</p>
               ) : (
                 <div className="tenor-row">
                   {EPP_TENORS.map((months) => {
-                    const quote = eppQuotes.find((q) => q.tenor_months === months);
-                    const monthlyPayment = quote?.monthly_installment ?? Math.ceil(total / months);
+                    const quote = eppQuotes.find(
+                      (q) => (q.tenor_months ?? q.tenorMonths) === months
+                    );
+                    const monthly =
+                      quote?.monthly_installment ?? quote?.monthlyInstalment ?? Math.ceil(total / months);
 
                     return (
                       <button
@@ -474,73 +449,66 @@ export default function FeePaymentPage() {
                       >
                         <span className="tenor-months">{months} Months</span>
                         <span className="tenor-calc">
-                          {formatAmount(monthlyPayment, invoiceCurrency)}/mo
+                          {formatAmount(monthly, invoiceCurrency)}/mo{!quote && " (est.)"}
                         </span>
                       </button>
                     );
                   })}
                 </div>
               )}
+              <p className="field-hint field-hint-block">
+                The full balance is charged to the card now, then converted into instalments.
+              </p>
             </div>
           )}
         </section>
 
         <hr className="config-divider" />
 
-        {/* Step 2: Payment Method */}
         <section className="config-section">
           <div className="section-title-wrap">
             <span className="section-num">02</span>
             <div>
               <h2 className="section-title">Payment Method</h2>
-              <p className="section-desc">Select customer preferred settlement channel</p>
+              <p className="section-desc">Where the money comes from</p>
             </div>
           </div>
 
-          <div className="option-grid option-grid-2">
-            {PAYMENT_METHOD_OPTIONS.map((opt) => {
+          <div className="option-grid option-grid-3">
+            {methodOptions.map((opt) => {
               const isSelected = methodOption === opt.key;
-              const isCashDisabled = amountOption === "epp" && opt.key === "cash";
-
               return (
                 <button
                   type="button"
                   key={opt.key}
-                  disabled={isCashDisabled || isBlocked}
-                  className={`option-card ${isSelected ? "option-card-selected" : ""} ${
-                    isCashDisabled ? "option-card-disabled" : ""
-                  }`}
-                  onClick={() => {
-                    if (!isCashDisabled) setMethodOption(opt.key);
-                  }}
+                  disabled={isBlocked}
+                  className={`option-card ${isSelected ? "option-card-selected" : ""}`}
+                  onClick={() => setMethodOption(opt.key)}
                 >
                   <div className="option-head">
                     <span className={`custom-radio ${isSelected ? "checked" : ""}`} />
-                    <span className="method-tag">
-                      {isCashDisabled ? "Unavailable for EPP" : opt.tag}
-                    </span>
+                    <span className="method-tag">{opt.tag}</span>
                   </div>
                   <strong className="option-title">{opt.title}</strong>
-                  <span className="option-desc">
-                    {isCashDisabled
-                      ? "Instalment plans require an authorized linked card."
-                      : opt.desc}
-                  </span>
+                  <span className="option-desc">{opt.desc}</span>
                 </button>
               );
             })}
           </div>
+
+          {isEpp && (
+            <p className="field-hint field-hint-block">
+              Instalment plans are credit-card only, so bank transfer and cash aren't available here.
+            </p>
+          )}
         </section>
 
         {formError && <div className="alert-error-banner">{formError}</div>}
 
-        {/* Action Bar */}
         <div className="pay-action-bar">
           <div className="action-summary">
             <span className="summary-title">Total Settling Now</span>
-            <span className="summary-amount">
-              {formatAmount(amountDue || 0, invoiceCurrency)}
-            </span>
+            <span className="summary-amount">{formatAmount(amountDue || 0, invoiceCurrency)}</span>
           </div>
 
           <button
@@ -555,12 +523,14 @@ export default function FeePaymentPage() {
       </div>
 
       <AccountSelectModal
-        isOpen={showAccountModal}
-        onClose={() => setShowAccountModal(false)}
-        onConfirm={(account) => handleConfirm(account)}
+        isOpen={showSourceModal}
+        onClose={() => setShowSourceModal(false)}
+        onConfirm={(source) => handleConfirm(source)}
         amountDue={amountDue}
         invoiceCurrency={invoiceCurrency}
-        nationalId={parent?.nationalId || parent?.national_id}
+        nationalId={nationalId}
+        mode={activeMethod?.tenderMethod === "card" ? "card" : "account"}
+        requireCreditCard={isEpp}
         isProcessing={isProcessing}
       />
     </div>
