@@ -14,7 +14,6 @@ export default function AccountSelectModal({
   amountDue,
   invoiceCurrency = "EGP",
   nationalId,
-  parentName = "",
   mode = "account", // "account" | "card"
   requireCreditCard = false,
   isProcessing = false,
@@ -38,7 +37,6 @@ export default function AccountSelectModal({
     }
 
     let isMounted = true;
-
     async function loadCustomerInstruments() {
       setIsLoading(true);
       setFetchError("");
@@ -58,41 +56,31 @@ export default function AccountSelectModal({
     }
 
     loadCustomerInstruments();
-
     return () => {
       isMounted = false;
     };
   }, [isOpen, nationalId]);
 
-  // Filter items based on active payment method
   const items = useMemo(() => {
     if (mode === "account") {
       return customerAccounts.map((acc, idx) => ({
-        id: acc.account_id || `acc-${idx}`,
+        id: acc.account_id || acc.id || `acc-${idx}`,
         title: acc.type === "CURRENT" ? "Current Account" : "Savings Account",
         subtitle: acc.iban_masked || acc.account_number || "•••• 0000",
         balance: acc.balance ?? acc.available_balance ?? 0,
         currency: acc.currency || "EGP",
-        raw: acc,
         kind: "account",
       }));
     }
 
-    // mode === "card"
     return customerCards
-      .filter((c) => {
-        if (requireCreditCard) {
-          return String(c.type || "").toUpperCase() === "CREDIT";
-        }
-        return true;
-      })
+      .filter((c) => (requireCreditCard ? String(c.type || "").toUpperCase() === "CREDIT" : true))
       .map((card, idx) => ({
-        id: card.card_id || `card-${idx}`,
+        id: card.card_id || card.id || `card-${idx}`,
         title: `${card.type || "Credit"} Card (${card.scheme || "CIB"})`,
         subtitle: card.masked_number || "•••• 0000",
         balance: card.credit_limit ?? card.balance ?? 0,
         currency: card.currency || "EGP",
-        raw: card,
         kind: "card",
       }));
   }, [mode, requireCreditCard, customerAccounts, customerCards]);
@@ -110,31 +98,11 @@ export default function AccountSelectModal({
   function handleSelectAndConfirm() {
     if (!selectedItem || isProcessing) return;
 
-    if (selectedItem.kind === "account") {
-      onConfirm({
-        kind: "account",
-        accountRef: selectedItem.raw.account_id || selectedItem.raw.account_number || selectedItem.id,
-        maskedNumber: selectedItem.subtitle,
-      });
-      return;
-    }
-
-    // Card Tender Construction using DB record attributes
-    const rawCard = selectedItem.raw;
-    const [expMonth, expYear] = (rawCard.expiry || "12/28").split("/");
-
+    // Send only the source ID (account_ref) and display label
     onConfirm({
-      kind: "card",
+      kind: selectedItem.kind,
+      sourceId: selectedItem.id,
       maskedNumber: selectedItem.subtitle,
-      card: {
-        // Uses the card record details from the DB query
-        number: rawCard.card_number || rawCard.card_id || "4111111111111111",
-        holder_name: parentName || rawCard.holder_name || "CIB Customer",
-        expiry_month: expMonth || "12",
-        expiry_year: expYear?.length === 2 ? `20${expYear}` : (expYear || "2028"),
-        cvv: rawCard.cvv || "123",
-      },
-      mobile: rawCard.mobile,
     });
   }
 

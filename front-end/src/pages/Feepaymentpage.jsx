@@ -28,18 +28,18 @@ const PAYMENT_AMOUNT_OPTIONS = [
 
 const PAYMENT_METHOD_OPTIONS = [
   {
-    key: "transfer",
-    tenderMethod: "account",
-    title: "Bank Transfer",
-    desc: "Deduct from one of the customer's CIB accounts",
-    tag: "Same-bank",
-  },
-  {
     key: "card",
     tenderMethod: "card",
     title: "Credit / Debit Card",
     desc: "Charge one of the customer's cards",
     tag: "Instant",
+  },
+  {
+    key: "transfer",
+    tenderMethod: "account",
+    title: "Bank Transfer",
+    desc: "Deduct from one of the customer's CIB accounts",
+    tag: "Same-bank",
   },
   {
     key: "cash",
@@ -56,20 +56,20 @@ const EPP_MAX_AMOUNT = 500000;
 
 const ERROR_COPY = {
   CARD_DECLINED: (msg) => msg || "The payment was declined. Try a different card or account.",
-  THREE_DS_NOT_SUPPORTED: () =>
-    "This card requires a one-time password (3-D Secure), which isn't supported yet. Use a different card, or pay by bank transfer.",
+  CARD_BLOCKED: () => "This card is blocked by the bank. Please select another card or payment method.",
+  ACCOUNT_NOT_ACTIVE: () => "This account is inactive or frozen. Please select another payment source.",
+  CARD_EXPIRED: () => "This card has expired. Please select a valid card.",
+  SOURCE_NOT_USABLE: (msg) => msg || "This payment source cannot be used.",
+  SOURCE_NOT_FOUND: () => "Source reference mismatch. Please re-select the account or card.",
   PAYMENT_OUTCOME_UNKNOWN: () =>
-    "The bank didn't confirm or deny this charge, so the money may already have moved. Do NOT retry — this payment is pending manual reconciliation.",
+    "The bank did not confirm or deny this charge. Payment is pending manual reconciliation — do NOT retry.",
   IDEMPOTENCY_CONFLICT: () =>
     "This payment reference has already been used for different details. Refresh the page and start again.",
   VALIDATION_ERROR: (msg) => msg || "Some details on this payment are invalid.",
-  BANK_REJECTED_REQUEST: (msg) => msg || "The bank rejected this charge.",
-  EPP_REQUIRES_FULL_PAYMENT: () => "Instalment plans need the full balance settled in one card payment.",
-  EPP_REQUIRES_CARD: () => "Instalment plans can only be created from a card payment.",
-  PAYMENT_NOT_CONVERTIBLE: (msg) => msg || "This payment can't be converted to instalments.",
+  EPP_REQUIRES_FULL_PAYMENT: () => "Instalment plans require settling the full balance.",
+  EPP_REQUIRES_CARD: () => "Instalment plans require an authorized credit card.",
+  CARD_NOT_ELIGIBLE: () => "That card is not eligible for instalments — credit cards only.",
   ALREADY_CONVERTED: () => "This payment already has an instalment plan.",
-  CARD_NOT_ELIGIBLE: () => "That card isn't eligible for instalments — credit cards only.",
-  UNSUPPORTED_TENOR: (msg) => msg || "That instalment length isn't available.",
 };
 
 function formatAmount(amount, currency = "EGP") {
@@ -96,7 +96,7 @@ export default function FeePaymentPage() {
   const [amountOption, setAmountOption] = useState("full");
   const [partialAmount, setPartialAmount] = useState("");
   const [eppTenor, setEppTenor] = useState(EPP_TENORS[2]);
-  const [methodOption, setMethodOption] = useState("transfer");
+  const [methodOption, setMethodOption] = useState("card");
   const [isProcessing, setIsProcessing] = useState(false);
   const [formError, setFormError] = useState("");
   const [showSourceModal, setShowSourceModal] = useState(false);
@@ -118,7 +118,6 @@ export default function FeePaymentPage() {
 
   const amountDue = amountOption === "partial" ? partialAmountNumber : total;
   const isEpp = amountOption === "epp";
-
   const isEppEligibleAmount = total >= EPP_MIN_AMOUNT && total <= EPP_MAX_AMOUNT;
 
   const methodOptions = isEpp
@@ -174,6 +173,7 @@ export default function FeePaymentPage() {
     });
   }
 
+  // Pure source_id wiring matching backend changes
   function buildTender(source) {
     const amount = amountDue;
 
@@ -181,16 +181,10 @@ export default function FeePaymentPage() {
       return { method: "cash", amount };
     }
 
-    if (activeMethod.tenderMethod === "account") {
-      return { method: "account", account_ref: source.accountRef, amount };
-    }
-
     return {
-      method: "card",
+      method: activeMethod.tenderMethod, // "card" or "account"
+      account_ref: source.sourceId,
       amount,
-      card: source.card,
-      national_id: nationalId || undefined,
-      mobile: source.mobile,
     };
   }
 
