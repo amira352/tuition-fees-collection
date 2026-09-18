@@ -1,5 +1,5 @@
 -- Run this before every run of test-payments.sh.
--- Wipes the test parent's payments and puts the three test fees back to unpaid.
+-- Wipes the test parent's payments and puts the test fees back to unpaid.
 
 delete from receipts
  where payment_id in (select id from payments
@@ -30,7 +30,15 @@ insert into fees (id, child_id, fee_type, period, amount, outstanding_amount, st
   -- never settled by any test. the negative tests need a fee that is still
   -- payable, otherwise they fail on "already settled" and prove nothing.
   ('dddddddd-dddd-dddd-dddd-dddddddddddd',
-   '33333333-3333-3333-3333-333333333333', 'activities', 'TEST', 5000, 5000, 'unpaid')
+   '33333333-3333-3333-3333-333333333333', 'activities', 'TEST', 5000, 5000, 'unpaid'),
+  -- paid with a card, to prove a card is just another source now
+  ('eeeeeeee-1111-1111-1111-eeeeeeeeeeee',
+   '33333333-3333-3333-3333-333333333333', 'transport', 'TEST', 700, 700, 'unpaid'),
+  -- charged to a BLOCKED card, then paid normally. the second half is the
+  -- point: a refused source must not leave the fee locked behind a pending
+  -- payment.
+  ('ffffffff-1111-1111-1111-ffffffffffff',
+   '33333333-3333-3333-3333-333333333333', 'uniform', 'TEST', 300, 300, 'unpaid')
 on conflict (id) do nothing;
 
 update fees
@@ -38,7 +46,9 @@ update fees
  where id in ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
               'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
               'cccccccc-cccc-cccc-cccc-cccccccccccc',
-              'dddddddd-dddd-dddd-dddd-dddddddddddd');
+              'dddddddd-dddd-dddd-dddd-dddddddddddd',
+              'eeeeeeee-1111-1111-1111-eeeeeeeeeeee',
+              'ffffffff-1111-1111-1111-ffffffffffff');
 
 select id, fee_type, amount, outstanding_amount, status
   from fees

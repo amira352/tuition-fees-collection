@@ -87,7 +87,10 @@ export const authoriseFromAccount = async ({ accountRef, amount }) => {
   }
 };
 
-export const reverseAuthorisation = async (providerRef) => {
+export const reverseAuthorisation = async (
+  providerRef,
+  reason = "Reversed - the payment this belonged to did not complete"
+) => {
   if (providerRef?.startsWith("SIMULATED-ACCT-")) {
     return { reversed: true, providerRef };
   }
@@ -99,7 +102,13 @@ export const reverseAuthorisation = async (providerRef) => {
       // Backoffice payments always post/capture immediately (capture: true
       // above) - there is no AUTHORISED, voidable state to catch, so refund
       // is the only real reversal path for this one.
-      response = await bankClient.post(`/api/v1/backoffice/payments/${providerRef}/refund`);
+      // The refund endpoints require a body. Posting without one is
+      // rejected as VALIDATION_ERROR before the bank even looks at the
+      // payment, which reads like a state problem and is not one.
+      response = await bankClient.post(
+        `/api/v1/backoffice/payments/${providerRef}/refund`,
+        { reason }
+      );
     } else {
       // void only works on a charge the bank has authorised but not yet
       // taken. We charge with capture: true, so most charges are already
@@ -115,7 +124,10 @@ export const reverseAuthorisation = async (providerRef) => {
           throw voidError;
         }
 
-        response = await bankClient.post(`/api/v1/payments/cards/${providerRef}/refund`);
+        response = await bankClient.post(
+          `/api/v1/payments/cards/${providerRef}/refund`,
+          { reason }
+        );
       }
     }
 
