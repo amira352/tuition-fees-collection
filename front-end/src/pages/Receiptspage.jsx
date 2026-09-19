@@ -182,31 +182,47 @@ export default function ReceiptsPage() {
   }
 
   function handleView(r) {
-    navigate("/receipt", {
-      state: {
-        receipt: {
-          receipt_number: r.receiptNumber,
-          paymentId: r.paymentId,
-          payer: r.payer || payerInfo?.name,
-          institution: r.institutions?.join(", ") || "—",
-          method: r.methods?.[0] || "Card",
-          total: r.amount,
-          amountPaid: r.amount,
-          amountCurrency: r.currency,
-          processedAt: r.date,
-          paid_on: r.date,
-          lines: r.lines || [],
+      navigate(`/receipt?receiptNumber=${r.receiptNumber}&from=receipts`, {
+        state: {
+          from: "receipts",
+          receipt: {
+            receipt_number: r.receiptNumber,
+            paymentId: r.paymentId,
+            payer: r.payer || payerInfo?.name,
+            institution: r.institutions?.join(", ") || "—",
+            method: r.methods?.[0] || "Card",
+            total: r.amount,
+            amountPaid: r.amount,
+            amountCurrency: r.currency,
+            processedAt: r.date,
+            paid_on: r.date,
+            lines: r.lines || [],
+          },
         },
-      },
-    });
-  }
+      });
+    }
 
-  function handlePrint(r) {
-    handleView(r);
-    setTimeout(() => {
-      window.print();
-    }, 300);
-  }
+    function handlePrint(r) {
+      navigate(`/receipt?receiptNumber=${r.receiptNumber}&from=receipts`, {
+        state: {
+          from: "receipts",
+          autoPrint: true,
+          receipt: {
+            receipt_number: r.receiptNumber,
+            paymentId: r.paymentId,
+            payer: r.payer || payerInfo?.name,
+            institution: r.institutions?.join(", ") || "—",
+            method: r.methods?.[0] || "Card",
+            total: r.amount,
+            amountPaid: r.amount,
+            amountCurrency: r.currency,
+            processedAt: r.date,
+            paid_on: r.date,
+            lines: r.lines || [],
+          },
+        },
+      });
+    }
 
   return (
     <div className="page">

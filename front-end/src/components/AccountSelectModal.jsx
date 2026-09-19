@@ -63,26 +63,42 @@ export default function AccountSelectModal({
 
   const items = useMemo(() => {
     if (mode === "account") {
-      return customerAccounts.map((acc, idx) => ({
-        id: acc.account_id || acc.id || `acc-${idx}`,
-        title: acc.type === "CURRENT" ? "Current Account" : "Savings Account",
-        subtitle: acc.iban_masked || acc.account_number || "•••• 0000",
-        balance: acc.balance ?? acc.available_balance ?? 0,
-        currency: acc.currency || "EGP",
-        kind: "account",
-      }));
+      return customerAccounts.map((acc, idx) => {
+        const balanceVal = acc.available_balance ?? acc.balance ?? null;
+        return {
+          id: acc.account_id || acc.id || `acc-${idx}`,
+          title: acc.type === "CURRENT" ? "Current Account" : "Savings Account",
+          subtitle: acc.iban_masked || acc.account_number || "•••• 0000",
+          amount: balanceVal !== null ? Number(balanceVal) : null,
+          label: "Available balance",
+          currency: acc.currency || "EGP",
+          kind: "account",
+        };
+      });
     }
 
     return customerCards
       .filter((c) => (requireCreditCard ? String(c.type || "").toUpperCase() === "CREDIT" : true))
-      .map((card, idx) => ({
-        id: card.card_id || card.id || `card-${idx}`,
-        title: `${card.type || "Credit"} Card (${card.scheme || "CIB"})`,
-        subtitle: card.masked_number || "•••• 0000",
-        balance: card.credit_limit ?? card.balance ?? 0,
-        currency: card.currency || "EGP",
-        kind: "card",
-      }));
+      .map((card, idx) => {
+        const limitVal =
+          card.available_limit ??
+          card.credit_limit ??
+          card.limit ??
+          card.balance ??
+          null;
+
+        const isCredit = String(card.type || "").toUpperCase() === "CREDIT";
+
+        return {
+          id: card.card_id || card.id || `card-${idx}`,
+          title: `${card.type || "Credit"} Card (${card.scheme || "CIB"})`,
+          subtitle: card.masked_number || "•••• 0000",
+          amount: limitVal !== null ? Number(limitVal) : null,
+          label: isCredit ? "Available limit" : "Available balance",
+          currency: card.currency || "EGP",
+          kind: "card",
+        };
+      });
   }, [mode, requireCreditCard, customerAccounts, customerCards]);
 
   useEffect(() => {
@@ -98,7 +114,6 @@ export default function AccountSelectModal({
   function handleSelectAndConfirm() {
     if (!selectedItem || isProcessing) return;
 
-    // Send only the source ID (account_ref) and display label
     onConfirm({
       kind: selectedItem.kind,
       sourceId: selectedItem.id,
@@ -161,9 +176,9 @@ export default function AccountSelectModal({
                     )}
                   </span>
                   <span className="option-desc">{item.subtitle}</span>
-                  {item.balance > 0 && (
+                  {item.amount !== null && (
                     <span className="option-desc account-balance">
-                      {formatAmount(item.balance, item.currency)} available
+                      {formatAmount(item.amount, item.currency)} {item.label}
                     </span>
                   )}
                 </button>

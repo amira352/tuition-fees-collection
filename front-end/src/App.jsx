@@ -19,8 +19,6 @@ import BackOfficeManagement from "./pages/BackOfficeManagement";
 import NotFound from "./pages/NotFound";
 import { getUser, isAuthenticated } from "./lib/auth";
 import ReportsPage from "./pages/institution/ReportsPage";
-// Discounts page is hidden for now. Re-enable by restoring this import and its route below.
-// import DiscountsPage from "./pages/institution/DiscountsPage";
 
 // Lazy-loaded pages
 const InstitutionDashboard = lazy(() =>
@@ -70,14 +68,29 @@ function Home() {
   );
 }
 
+function PublicOnlyRoute({ children }) {
+  if (isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Suspense fallback={<div className="route-loading">Loading…</div>}>
         <Routes>
+          {/* Root Redirect */}
+          <Route path="/" element={<Home />} />
+
+          {/* Public Authentication Route */}
           <Route
             path="/login"
-            element={isAuthenticated() ? <Navigate to="/" replace /> : <Login />}
+            element={
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
+            }
           />
 
           <Route
@@ -93,7 +106,7 @@ export default function App() {
           <Route
             path="/institution"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["institution"]}>
                 <InstitutionLayout />
               </ProtectedRoute>
             }
@@ -101,7 +114,6 @@ export default function App() {
             <Route index element={<InstitutionDashboard />} />
             <Route path="students" element={<StudentsPage />} />
             <Route path="fees" element={<FeesManagement />} />
-            {/* <Route path="discounts" element={<DiscountsPage />} /> */}
             <Route path="payments" element={<InstitutionPayments />} />
             <Route path="epp-plans" element={<InstitutionEppPlans />} />
             <Route path="upload-dues" element={<UploadDues />} />
@@ -155,7 +167,7 @@ export default function App() {
             />
           </Route>
 
-          <Route path="/" element={<Home />} />
+          {/* 404 Catch-All */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

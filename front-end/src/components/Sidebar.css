@@ -1,18 +1,44 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  justify-content: space-between;
   width: 15rem;
   flex-shrink: 0;
-  padding: 1.75rem 0.85rem !important; /* Matches .cib-dashboard top padding */
+  padding: 1.75rem 0.85rem 1.25rem 0.85rem !important;
   margin: 0 !important;
   background: #fff;
-  border-right: 1px solid var(--line);
-  min-height: calc(100vh - 64px);
-  align-self: stretch;
-  justify-content: flex-start !important; /* Prevents vertical centering */
+  border-right: 1px solid var(--line, #e2e8f0);
+
+  /* Pins sidebar to the viewport window so it never stretches with page length */
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  box-sizing: border-box;
 }
 
+/* Primary navigation links pinned at the top */
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Footer links anchored at the bottom */
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sidebar-divider {
+  border: none;
+  border-top: 1px solid var(--line, #e2e8f0);
+  margin: 0 0.5rem 0.65rem 0.5rem;
+  opacity: 0.7;
+}
+
+/* Individual navigation link */
 .sidebar-link {
   display: flex;
   align-items: center;
@@ -22,13 +48,13 @@
   border: none;
   border-radius: 9px;
   background: transparent;
-  color: var(--muted);
+  color: var(--muted, #64748b);
   font: inherit;
   font-size: 0.88rem;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .sidebar-link:hover {
@@ -36,7 +62,7 @@
   color: #002d62;
 }
 
-/* CIB Branded Active State */
+/* Active navigation item */
 .sidebar-link.active {
   background: #e8f0fe !important;
   color: #002d62 !important;
@@ -52,20 +78,53 @@
 }
 
 .sidebar-link.active .sidebar-dot {
-  background: #ff6f00 !important; /* CIB Signature Orange dot */
+  background: #ff6f00 !important;
   opacity: 1 !important;
   box-shadow: 0 0 6px rgba(255, 111, 0, 0.4);
 }
 
+/* Sign out link styling */
+.sidebar-signout-link {
+  color: #ef4444;
+}
+
+.sidebar-signout-link .sidebar-dot {
+  background: #ef4444;
+  opacity: 0.5;
+}
+
+.sidebar-signout-link:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.sidebar-signout-link:hover .sidebar-dot {
+  background: #dc2626;
+  opacity: 1;
+}
+
+/* Mobile responsive view */
 @media (max-width: 768px) {
   .sidebar {
     width: 100%;
-    min-height: auto;
+    height: auto;
+    position: relative;
+    top: 0;
     flex-direction: row;
     overflow-x: auto;
     border-right: none;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--line, #e2e8f0);
     padding: 0.75rem !important;
+  }
+
+  .sidebar-menu,
+  .sidebar-footer {
+    flex-direction: row;
+    margin-top: 0;
+  }
+
+  .sidebar-divider {
+    display: none;
   }
 
   .sidebar-link {

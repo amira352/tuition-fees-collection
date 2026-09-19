@@ -2,11 +2,11 @@ import "./Sidebar.css";
 import { NAV_ITEMS } from "./navItems";
 import { getUser } from "../lib/auth";
 
-/**
- * Left sidebar nav. `activePage` controls the highlighted item;
- * `onNavigate` fires with the clicked item's key.
- */
-export default function Sidebar({ activePage = "dashboard", onNavigate }) {
+export default function Sidebar({
+  activePage = "dashboard",
+  onNavigate,
+  onSignOut,
+}) {
   const role = getUser()?.role;
   const items = NAV_ITEMS.filter(
     (item) => !item.roles || item.roles.includes(role)
@@ -14,17 +14,43 @@ export default function Sidebar({ activePage = "dashboard", onNavigate }) {
 
   return (
     <nav className="sidebar">
-      {items.map((item) => (
+      {/* Top Menu Links */}
+      <div className="sidebar-menu">
+        {items.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className={`sidebar-link ${activePage === item.key ? "active" : ""}`}
+            onClick={() => onNavigate?.(item.key)}
+          >
+            <span className="sidebar-dot" />
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Pinned Bottom Actions */}
+      <div className="sidebar-footer">
+        <hr className="sidebar-divider" />
+
         <button
-          key={item.key}
           type="button"
-          className={`sidebar-link ${activePage === item.key ? "active" : ""}`}
-          onClick={() => onNavigate?.(item.key)}
+          className={`sidebar-link ${activePage === "profile" ? "active" : ""}`}
+          onClick={() => onNavigate?.("profile")}
         >
           <span className="sidebar-dot" />
-          {item.label}
+          Profile
         </button>
-      ))}
+
+        <button
+          type="button"
+          className="sidebar-link sidebar-signout-link"
+          onClick={onSignOut}
+        >
+          <span className="sidebar-dot" />
+          Sign out
+        </button>
+      </div>
     </nav>
   );
 }
