@@ -14,13 +14,13 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
 // in the order the backend documents them.
 const REQUIRED_COLUMNS = [
   { key: "parent_national_id", description: "Parent national ID" },
-  { key: "student_code", description: "Student code" },
-  { key: "amount", description: "Fee amount" },
-  { key: "currency", description: "Currency (EGP, USD, etc.)" },
   { key: "parent_name", description: "Parent name" },
+  { key: "student_code", description: "Student code" },
   { key: "student_name", description: "Student name" },
   { key: "fee_type", description: "Fee type (Tuition, Transport, etc.)" },
   { key: "period", description: "Academic period" },
+  { key: "amount", description: "Fee amount" },
+  { key: "currency", description: "Currency (EGP, USD, etc.)" },
 ];
 const REQUIRED_HEADERS = REQUIRED_COLUMNS.map((c) => c.key);
 
