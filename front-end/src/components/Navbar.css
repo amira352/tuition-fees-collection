@@ -1,4 +1,6 @@
 .navbar {
+  position: static !important; /* Ensures the navbar scrolls away with the page */
+  top: auto !important;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6,6 +8,9 @@
   padding: 0.85rem 1.5rem;
   background: #fff;
   border-bottom: 1px solid var(--line);
+  box-sizing: border-box;
+  width: 100%;
+  z-index: 1;
 }
 
 .navbar-brand {
