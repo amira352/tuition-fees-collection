@@ -66,7 +66,7 @@ export const searchParentByNationalId = async ({
   }
 
 
-  // 5. Search YOUR database
+  // 5. Search database
   const parent =
     await findParentByNationalIdHmac(
       nationalIdHmac
